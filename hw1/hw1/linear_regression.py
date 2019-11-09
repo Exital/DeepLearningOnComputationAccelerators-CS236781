@@ -27,9 +27,8 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
         check_is_fitted(self, 'weights_')
         # TODO: Calculate the model prediction, y_pred
         # ====== YOUR CODE: ======
-        y_biased = self.weights_.transpose()@X
+        y_pred = X@self.weights_
         # ========================
-        y_pred = y_biased[:,0] + y_biased[:,1]
         return y_pred
 
     def fit(self, X, y):
@@ -43,14 +42,14 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
         # TODO:
         #  Calculate the optimal weights using the closed-form solution
         #  Use only numpy functions. Don't forget regularization.
-        b = X[:,0]
-        X = X[:,1:]
-        err = ((1/(len(y)))*X@X.transpose() + self.reg_lambda*np.eye(X.shape[0]))
-        w_opt = (1/(len(y)))*np.linalg.inv(err)@(X@y-X@b)
-        # ====== YOUR CODE: ======r)
         
+        #X = (X - X.mean())/X.std()
+        # ====== YOUR CODE: ======r)
+        N = X.shape[0]
+        inv_mat = np.linalg.inv( X.transpose()@X + N*self.reg_lambda*np.eye(X.shape[1]) )
+        w_opt = inv_mat@X.transpose()@y
         # ========================
-
+        #w_opt = np.flip(w_opt,axis=0)
         self.weights_ = w_opt
         return self
 
@@ -77,6 +76,7 @@ class BiasTrickTransformer(BaseEstimator, TransformerMixin):
         
         # ====== YOUR CODE: ======
         xb = np.hstack((np.ones((X.shape[0],1)),X))
+        #xb = np.hstack((X,np.ones((X.shape[0],1))))
         # ========================
 
         return xb
