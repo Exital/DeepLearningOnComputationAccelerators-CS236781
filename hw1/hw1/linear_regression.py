@@ -43,8 +43,7 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
         #  Calculate the optimal weights using the closed-form solution
         #  Use only numpy functions. Don't forget regularization.
         
-        #X = (X - X.mean())/X.std()
-        # ====== YOUR CODE: ======r)
+        # ====== YOUR CODE: ======
         N = X.shape[0]
         reg_mat = N*self.reg_lambda*np.eye(X.shape[1])
         reg_mat[0,0] = 0
@@ -87,16 +86,23 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
     Generates custom features for the Boston dataset.
     """
 
-    def __init__(self, degree=2):
+    def __init__(self, degree=2,reg_lambda=0.1):
         self.degree = degree
-
+        
         # TODO: Your custom initialization, if needed
         # Add any hyperparameters you need and save them as above
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.reg_lambda = reg_lambda
         # ========================
 
     def fit(self, X, y=None):
+        N = len(y)
+        reg_mat = N*self.reg_lambda*np.eye(X.shape[1])
+        reg_mat[0,0] = 0
+        #reg_mat[:,:]=0
+        inv_mat = np.linalg.inv(X.transpose()@X + reg_mat)
+        w_opt = inv_mat@(X.transpose()@y)
+        self.weights_ = w_opt
         return self
 
     def transform(self, X):
@@ -112,10 +118,17 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
         #  Note: You CAN count on the order of features in the Boston dataset
         #  (this class is "Boston-specific"). For example X[:,1] is the second
         #  feature ('ZN').
-
-        X_transformed = None
+        
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        #poly = PolynomialFeatures(self.degree)
+        poly = PolynomialFeatures(self.degree)
+        #data = np.zeros((X.shape[0],2))
+        # mean between RM and LSTAT
+        #data[:,0] = np.exp(0.5*X[:,4] + 0.5*X[:,11])
+        #data[:,1] = X[:,9]
+        #data[:,2] = X[:,9]
+        data = X
+        X_transformed = poly.fit_transform(data)
         # ========================
 
         return X_transformed
@@ -217,7 +230,8 @@ def cv_best_hyperparams(model: BaseEstimator, X, y, k_folds,
     #  - You can use MSE or R^2 as a score.
 
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    
+
     # ========================
 
     return best_params
