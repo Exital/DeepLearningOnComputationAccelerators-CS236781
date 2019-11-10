@@ -46,10 +46,11 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
         #X = (X - X.mean())/X.std()
         # ====== YOUR CODE: ======r)
         N = X.shape[0]
-        inv_mat = np.linalg.inv( X.transpose()@X + N*self.reg_lambda*np.eye(X.shape[1]) )
+        reg_mat = N*self.reg_lambda*np.eye(X.shape[1])
+        reg_mat[0,0] = 0
+        inv_mat = np.linalg.inv( X.transpose()@X + reg_mat)
         w_opt = inv_mat@X.transpose()@y
         # ========================
-        #w_opt = np.flip(w_opt,axis=0)
         self.weights_ = w_opt
         return self
 
@@ -76,7 +77,6 @@ class BiasTrickTransformer(BaseEstimator, TransformerMixin):
         
         # ====== YOUR CODE: ======
         xb = np.hstack((np.ones((X.shape[0],1)),X))
-        #xb = np.hstack((X,np.ones((X.shape[0],1))))
         # ========================
 
         return xb
