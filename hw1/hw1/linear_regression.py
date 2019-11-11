@@ -120,13 +120,7 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
         #  feature ('ZN').
         
         # ====== YOUR CODE: ======
-        #poly = PolynomialFeatures(self.degree)
         poly = PolynomialFeatures(self.degree)
-        #data = np.zeros((X.shape[0],2))
-        # mean between RM and LSTAT
-        #data[:,0] = np.exp(0.5*X[:,4] + 0.5*X[:,11])
-        #data[:,1] = X[:,9]
-        #data[:,2] = X[:,9]
         data = X
         X_transformed = poly.fit_transform(data)
         # ========================
@@ -230,7 +224,43 @@ def cv_best_hyperparams(model: BaseEstimator, X, y, k_folds,
     #  - You can use MSE or R^2 as a score.
 
     # ====== YOUR CODE: ======
+    #reg_lambda_key = 'bostonfeaturestransformer__reg_lambda'
+    #degree_key = 'bostonfeaturestransformer__degree'
+    kf = sklearn.model_selection.KFold(n_splits = k_folds,shuffle = True)
     
+    best_lambda = 0
+    best_degree = 1
+    lambda_list = []
+    degree_list = []
+    #scores = []
+    for train_index,test_index in kf.split(X):
+        best_err = np.Inf
+        for lamda in lambda_range:
+            for degree in degree_range:
+                curr_params = {'bostonfeaturestransformer__reg_lambda': lamda,
+                               'bostonfeaturestransformer__degree':degree
+                               }
+                model.set_params(**curr_params)
+                curr_model = model.fit(X[train_index],y[train_index])
+                curr_score = mse_score(y[test_index],curr_model.predict(X[test_index]))
+                if curr_score<best_err:
+                    print(lamda)
+                    print(degree)
+                    best_err = curr_score
+                    best_lambda = lamda
+                    best_degree = degree
+         
+
+        lambda_list.append(best_lambda)
+        degree_list.append(best_degree)
+        
+    
+
+    lambda_list = np.array(lambda_list)
+    degree_list = np.array(degree_list)            
+    best_params = {'bostonfeaturestransformer__reg_lambda': lambda_list.mean(),
+                   'bostonfeaturestransformer__degree':int(round(degree_list.mean()))
+    }   
 
     # ========================
 
