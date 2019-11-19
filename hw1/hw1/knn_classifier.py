@@ -30,6 +30,9 @@ class KNNClassifier(object):
         #     y_train.
         #  2. Save the number of classes as n_classes.
         # ====== YOUR CODE: ======
+        for i in dl_train:
+            print(len(i[0]))
+            print(len(i[1]))
         raise NotImplementedError()
         # ========================
 
@@ -89,7 +92,24 @@ def l2_dist(x1: Tensor, x2: Tensor):
 
     dists = None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    x1_dims = list(x1.shape)
+    x2_dims = list(x2.shape)
+
+    x2_singletons = x2.view(x2_dims[0], 1, x2_dims[1])
+
+    # every x1 sample minus every x2 sample via broadcasting
+    sub_t = x1 - x2_singletons;
+    sqr_t = sub_t ** 2
+
+    sqr_singletons = sqr_t.view(x1_dims[0] * x2_dims[0], x1_dims[1]) # rearrange vectors
+    sum_singletons = sqr_singletons.sum(1)
+
+    # we use a transposed dims of the requested tensor for a faster
+    # arrangment of the data
+    dists = (sum_singletons ** 0.5).view(x2_dims[0], x1_dims[0])
+    
+    # and now rearrange as needed
+    dists = dists.T
     # ========================
 
     return dists
@@ -109,7 +129,7 @@ def accuracy(y: Tensor, y_pred: Tensor):
     # TODO: Calculate prediction accuracy. Don't use an explicit loop.
     accuracy = None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    accuracy = float((y == y_pred).sum())/len(y)
     # ========================
 
     return accuracy
