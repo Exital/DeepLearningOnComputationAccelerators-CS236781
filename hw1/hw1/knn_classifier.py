@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 
 import cs236781.dataloader_utils as dataloader_utils
 from . import dataloaders
@@ -22,7 +22,9 @@ class KNNClassifier(object):
             return tuples).
         :return: self
         """
-
+        x, y = next(iter(dl_train))  
+        x_train = x
+        y_train = y
         # TODO:
         #  Convert the input dataloader into x_train, y_train and n_classes.
         #  1. You should join all the samples returned from the dataloader into
@@ -30,15 +32,19 @@ class KNNClassifier(object):
         #     y_train.
         #  2. Save the number of classes as n_classes.
         # ====== YOUR CODE: ======
-        for i in dl_train:
-            print(len(i[0]))
-            print(len(i[1]))
-        raise NotImplementedError()
+        count = 0
+        for x,y in dl_train:
+            if count == 0:
+                pass
+            else:
+                x_train = torch.cat((x_train,x))
+                y_train = torch.cat((y_train,y))
+                
+            count = count+1
         # ========================
-
         self.x_train = x_train
         self.y_train = y_train
-        self.n_classes = n_classes
+        self.n_classes = x_train.shape[0]
         return self
 
     def predict(self, x_test: Tensor):
@@ -49,8 +55,9 @@ class KNNClassifier(object):
         """
 
         # Calculate distances between training and test samples
-        dist_matrix = l2_dist(self.x_train, x_test)
-
+        dist_matrix = l2_dist(self.x_train,x_test)
+        
+        
         # TODO:
         #  Implement k-NN class prediction based on distance matrix.
         #  For each training sample we'll look for it's k-nearest neighbors.
@@ -65,7 +72,10 @@ class KNNClassifier(object):
             #  - Set y_pred[i] to the most common class among them
             #  - Don't use an explicit loop.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            curr_dist = dist_matrix[:,i]
+            _,top_idx = torch.topk(curr_dist,self.k,largest = False)
+            labels = self.y_train[top_idx]
+            y_pred[i] = torch.bincount(labels).argmax()
             # ========================
 
         return y_pred
@@ -90,17 +100,28 @@ def l2_dist(x1: Tensor, x2: Tensor):
     #    Hint: Open the expression (a-b)^2. Use broadcasting semantics to
     #    combine the three terms efficiently.
 
-    dists = None
     # ====== YOUR CODE: ======
-    x1_dims = list(x1.shape)
-    x2_dims = list(x2.shape)
-
+    #x1_dims = x1.shape
+    #x2_dims = x2.shape
+    
+    x1_sum_vec = (x1**2).sum(dim=1)
+    x2_sum_vec = (x2**2).sum(dim=1)
+    
+    mul_mat = x1@x2.T
+    x1_sum_vec = x1_sum_vec.view(-1,1)
+   # x2_sum_vec = x2_sum_vec.view(1,-1)
+    
+    total_sum = x1_sum_vec + x2_sum_vec
+    dists = total_sum - 2*mul_mat
+    dists = dists ** 0.5
+    
+    '''
     x2_singletons = x2.view(x2_dims[0], 1, x2_dims[1])
 
     # every x1 sample minus every x2 sample via broadcasting
     sub_t = x1 - x2_singletons;
     sqr_t = sub_t ** 2
-
+    #sqr_t = (x1 - x2_singletons)**2
     sqr_singletons = sqr_t.view(x1_dims[0] * x2_dims[0], x1_dims[1]) # rearrange vectors
     sum_singletons = sqr_singletons.sum(1)
 
@@ -110,6 +131,7 @@ def l2_dist(x1: Tensor, x2: Tensor):
     
     # and now rearrange as needed
     dists = dists.T
+    '''
     # ========================
 
     return dists
@@ -148,7 +170,9 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
     """
 
     accuracies = []
-
+    fold_size = int(np.floor(len(ds_train)/num_folds))
+    indices = np.random.rand(len(ds_train))
+    
     for i, k in enumerate(k_choices):
         model = KNNClassifier(k)
 
@@ -160,7 +184,23 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
         #  random split each iteration), or implement something else.
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        for i_fold in range(num_folds):
+            
+            valid_idxs = indices[i_fold * fold_size : (i_fold + 1) * fold_size]
+            train_idxs = np.concatenate((indices[:i_fold * fold_size], indices[(i_fold + 1) * fold_size:]))
+            
+            valid_set = Subset(ds_train, valid_idxs)                
+            train_set = Subset(ds_train, train_idxs)
+            
+            model.train(DataLoader(train_set))
+            
+            
+            for i_batch in range(len(valid_set)):
+                
+                y_pred = model.predict(valid_set[i_batch][0])
+                y = valid_set[i_batch][1]
+                accuracies.append(model.accuracy(y, y_pred))
+            
         # ========================
 
     best_k_idx = np.argmax([np.mean(acc) for acc in accuracies])
