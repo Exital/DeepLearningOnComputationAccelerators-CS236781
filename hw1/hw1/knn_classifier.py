@@ -101,9 +101,6 @@ def l2_dist(x1: Tensor, x2: Tensor):
     #    combine the three terms efficiently.
 
     # ====== YOUR CODE: ======
-    #x1_dims = x1.shape
-    #x2_dims = x2.shape
-    
     x1_sum_vec = (x1**2).sum(dim=1)
     x2_sum_vec = (x2**2).sum(dim=1)
     
@@ -171,7 +168,7 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
 
     accuracies = []
     fold_size = int(np.floor(len(ds_train)/num_folds))
-    indices = np.random.rand(len(ds_train))
+    indices = np.random.choice(len(ds_train), len(ds_train), replace=False)
     
     for i, k in enumerate(k_choices):
         model = KNNClassifier(k)
@@ -184,23 +181,24 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
         #  random split each iteration), or implement something else.
 
         # ====== YOUR CODE: ======
+        ith_acc = []
         for i_fold in range(num_folds):
             
-            valid_idxs = indices[i_fold * fold_size : (i_fold + 1) * fold_size]
-            train_idxs = np.concatenate((indices[:i_fold * fold_size], indices[(i_fold + 1) * fold_size:]))
+            test_indices = indices[i_fold * fold_size : (i_fold + 1) * fold_size]
+            train_indices = np.concatenate((indices[:i_fold * fold_size], indices[(i_fold + 1) * fold_size:]))
             
-            valid_set = Subset(ds_train, valid_idxs)                
-            train_set = Subset(ds_train, train_idxs)
+            # test_subset = torch.utils.data.Subset(ds_train, test_indices)
+            test_sampler = torch.utils.data.sampler.SubsetRandomSampler(test_indices)                 
+            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
             
-            model.train(DataLoader(train_set))
-            
-            
-            for i_batch in range(len(valid_set)):
-                
-                y_pred = model.predict(valid_set[i_batch][0])
-                y = valid_set[i_batch][1]
-                accuracies.append(model.accuracy(y, y_pred))
-            
+            model.train(DataLoader(ds_train, sampler=train_sampler))
+            dl_test = DataLoader(ds_train, sampler=test_sampler)
+            x_test, y_test = dataloader_utils.flatten(dl_test)
+             
+            y_pred = model.predict(x_test)
+            ith_acc.append(accuracy(y_test, y_pred))
+
+        accuracies.append(ith_acc)    
         # ========================
 
     best_k_idx = np.argmax([np.mean(acc) for acc in accuracies])

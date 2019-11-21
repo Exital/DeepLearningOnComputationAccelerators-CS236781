@@ -238,14 +238,14 @@ def cv_best_hyperparams(model: BaseEstimator, X, y, k_folds,
         for lamda in lambda_range:
             for degree in degree_range:
                 curr_params = {'bostonfeaturestransformer__reg_lambda': lamda,
-                               'bostonfeaturestransformer__degree':degree
+                               'bostonfeaturestransformer__degree':degree,
+                               'linearregressor__reg_lambda': lamda
                                }
                 model.set_params(**curr_params)
                 curr_model = model.fit(X[train_index],y[train_index])
                 curr_score = mse_score(y[test_index],curr_model.predict(X[test_index]))
                 if curr_score<best_err:
-                    print(lamda)
-                    print(degree)
+
                     best_err = curr_score
                     best_lambda = lamda
                     best_degree = degree
@@ -259,7 +259,8 @@ def cv_best_hyperparams(model: BaseEstimator, X, y, k_folds,
     lambda_list = np.array(lambda_list)
     degree_list = np.array(degree_list)            
     best_params = {'bostonfeaturestransformer__reg_lambda': lambda_list.mean(),
-                   'bostonfeaturestransformer__degree':int(round(degree_list.mean()))
+                   'bostonfeaturestransformer__degree':int(round(degree_list.mean())),
+                   'linearregressor__reg_lambda': lambda_list.mean()
     }   
 
     # ========================

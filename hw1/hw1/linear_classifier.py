@@ -113,7 +113,7 @@ class LinearClassifier(object):
                 pred,class_scores = self.predict(x)
                 curr_loss = loss_fn.loss(x,y,class_scores,pred)
                 total_loss = total_loss + curr_loss
-                grad = loss_fn.grad() + weight_decay*self.weights
+                grad = learn_rate*loss_fn.grad() + weight_decay*self.weights
                                      
                 total_correct+=self.evaluate_accuracy(y,pred)
                 self.weights -= (1/x.shape[0])*grad
@@ -182,7 +182,7 @@ def hyperparams():
     #  Manually tune the hyperparameters to get the training accuracy test
     #  to pass.
     # ====== YOUR CODE: ======
-    hp = dict(weight_std=0.005, learn_rate=0.08, weight_decay=0.006)    
+    hp = dict(weight_std=0.005, learn_rate=5, weight_decay=0.008)    
     # ========================
 
     return hp
