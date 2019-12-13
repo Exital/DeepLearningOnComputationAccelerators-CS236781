@@ -54,7 +54,7 @@ class ConvClassifier(nn.Module):
         # Running on the channel dims and appendin convolution layers and relu accordingly
         # After p convolution apply max pool  
         for idx in range(1,N_divisable):
-            layers.append(nn.Conv2d(self.channels[idx-1],self.channels[idx],kernel_size = 3,padding =1))
+            layers.append(nn.Conv2d(self.channels[idx-1],self.channels[idx],kernel_size = 3,padding =1,bias=True))
             layers.append(nn.ReLU())
             # Adding maxpool after every p convolutions 
             if (idx-1)%self.pool_every == 0:
@@ -63,7 +63,7 @@ class ConvClassifier(nn.Module):
         #layers.append(nn.MaxPool2d(kernel_size = 2))
         # Append the remaining convolutions and relu
         for idx in range(remaining):
-            layers.append(nn.Conv2d(self.channels[idx + N_divisable-1],self.channels[idx + N_divisable],kernel_size = 3,padding =1))
+            layers.append(nn.Conv2d(self.channels[idx + N_divisable-1],self.channels[idx + N_divisable],kernel_size = 3,padding =1,bias=True))
             layers.append(nn.ReLU())
             
         # ========================
@@ -76,9 +76,15 @@ class ConvClassifier(nn.Module):
         N = N//self.pool_every 
         M = len(self.hidden_dims)
         in_channels, in_h, in_w, = tuple(self.in_size)
+        
         # we had N//pool_every max pooling operations, number of output channels is
         # channels[-1] and we started with an image size of in_h*in_w 
-        MLP_in_dim = (self.channels[-1]*in_h*in_w)//(4**N)
+        
+        if len(self.channels) == 1:
+            MLP_in_dim = (self.channels[-1])*in_h*in_w
+        else:
+            MLP_in_dim = (self.channels[-1])*(in_h//(2**N))*(in_w//(2**N))
+        
         layers = []
         # TODO: Create the classifier part of the model:
         #  (Linear -> ReLU)*M -> Linear
@@ -89,10 +95,10 @@ class ConvClassifier(nn.Module):
         layers.append(nn.Linear(MLP_in_dim,self.hidden_dims[0]))
         layers.append(nn.ReLU())
         for idx in range(M-1):
-            layers.append(nn.Linear(self.hidden_dims[idx],self.hidden_dims[idx+1]))
+            layers.append(nn.Linear(self.hidden_dims[idx],self.hidden_dims[idx+1],bias=True))
             layers.append(nn.ReLU())
                 
-        layers.append(nn.Linear(self.hidden_dims[-1],self.out_classes))
+        layers.append(nn.Linear(self.hidden_dims[-1],self.out_classes,bias=True))
         
         # ========================
         seq = nn.Sequential(*layers)
@@ -103,12 +109,10 @@ class ConvClassifier(nn.Module):
         #  Extract features from the input, run the classifier on them and
         #  return class scores.
         # ====== YOUR CODE: ======
-        feature_ext = self._make_feature_extractor()
-        classifier = self._make_classifier()
-        features = feature_ext(x)
-        features = torch.flatten(features,1)
+        features = self.feature_extractor(x)
+        features = features.view(features.shape[0],-1)
+        out = self.classifier(features)
         
-        out = classifier(features)
         # ========================
         return out
 
@@ -147,7 +151,35 @@ class ResidualBlock(nn.Module):
         #  Use convolutions which preserve the spatial extent of the input.
         #  For simplicity of implementation, we'll assume kernel sizes are odd.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        main_layers = []
+        
+        # constructing the input layer 
+        # we assume kernel sizes are odd so to preserve spacial dimentions we 
+        # padd with the kernel size divided by 2
+        padding = kernel_sizes[0]//2
+        main_layers.append(nn.Conv2d(in_channels,channels[0],kernel_sizes[0],padding = padding))
+        main_layers.append(nn.Dropout2d(dropout))
+        if batchnorm ==True:    
+            main_layers.append(nn.BatchNorm2d(channels[0]))
+        main_layers.append(nn.ReLU())
+        
+        for idx in range(len(channels)-1):
+            padding = kernel_sizes[idx+1]//2
+            main_layers.append(nn.Conv2d(channels[idx],channels[idx +1],kernel_sizes[idx+1],padding = padding))
+
+            if idx < len(channels)-2:    
+                main_layers.append(nn.ReLU())
+                main_layers.append(nn.Dropout2d(dropout))
+                if batchnorm ==True:    
+                    main_layers.append(nn.BatchNorm2d(channels[idx + 1]))
+            
+        if channels[-1] != in_channels:
+            self.shortcut_path = nn.Sequential(nn.Conv2d(in_channels,channels[-1],kernel_size = 1,bias=False)
+            )            
+        else:    
+            self.shortcut_path = nn.Sequential()
+            
+        self.main_path = nn.Sequential(*main_layers)
         # ========================
 
     def forward(self, x):
@@ -176,7 +208,28 @@ class ResNetClassifier(ConvClassifier):
         #  CONV->ReLUs (with a skip over them) should exist at the end,
         #  without a MaxPool after them.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        
+        # Appending the first conv layer and after that relu        
+
+        layers.append(ResidualBlock(in_channels,self.channels[0:self.pool_every],[3]*self.pool_every))
+        layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
+
+        N = len(self.channels)
+        N_divisable = N - N % self.pool_every
+        remaining = N % self.pool_every
+
+        # Running on the channel dims and appending convolution layers and relu accordingly
+        # After p convolution apply max pool  
+        for idx_int,idx in enumerate(range(0,N_divisable,self.pool_every)):
+            if idx == 0:
+                continue
+            layers.append(ResidualBlock(self.channels[idx-1],self.channels[idx:idx+self.pool_every],[3]*self.pool_every))
+            layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
+            
+        
+        if remaining > 0 :
+
+            layers.append(ResidualBlock(self.channels[N_divisable-1],self.channels[N_divisable:N_divisable+remaining],[3]*remaining))
         # ========================
         seq = nn.Sequential(*layers)
         return seq

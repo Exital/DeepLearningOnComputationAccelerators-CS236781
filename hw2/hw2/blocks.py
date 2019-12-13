@@ -155,12 +155,16 @@ class ReLU(Block):
         # ====== YOUR CODE: ======
         #out = x
         #out[out<0] = 0
-        tmp = x.detach()
-        tmp[tmp<0]= 0 
-        out = x
+        #out = torch.max(x,torch.zeros_like(x))
+        self.grad_cache['x'] = x
+        #tmp = x
+        #tmp[tmp<0]= 0 
+        #out = tmp
+        out = torch.max(x,torch.zeros_like(x))
+        
         # ========================
 
-        self.grad_cache['x'] = x
+        
         return out
 
     def backward(self, dout):
@@ -169,11 +173,14 @@ class ReLU(Block):
         :return: Gradient with respect to block input, shape (N, *)
         """
         x = self.grad_cache['x']
+        #print(x.shape)
+        #print(dout.shape)
         
         # TODO: Implement gradient w.r.t. the input x
         # ====== YOUR CODE: ====== 
-        dout[x<0]=0
-        dx = dout
+
+        out = torch.where(x>0,torch.ones_like(x),torch.zeros_like(x))
+        dx = dout*out
         # ========================
 
         return dx
@@ -350,10 +357,8 @@ class Sequential(Block):
         # TODO: Implement the forward pass by passing each block's output
         #  as the input of the next.
         # ====== YOUR CODE: ======
-        idx = 0
         for block in self.blocks:
-            out = block.forward(out)
-            idx = idx + 1 
+            out = block.forward(out,**kw)
         # ========================
 
         return out
@@ -381,7 +386,7 @@ class Sequential(Block):
         # TODO: Return the parameter tuples from all blocks.
         # ====== YOUR CODE: ======
         for block in self.blocks:
-            params.append(block.params()) 
+            params += block.params()
         # ========================
         
         return params
@@ -428,25 +433,25 @@ class MLP(Block):
         activation function to use between linear layers.
         :param: Dropout probability. Zero means no dropout.
         """
-        blocks = []
-        non_lin_dict = {'relu':ReLU,'sigmoid':Sigmoid}
+        blocks = []        
         # TODO: Build the MLP architecture as described.
         # ====== YOUR CODE: ======
-        non_linearity  =  non_lin_dict[activation]
-        #all_dims = [in_features,*hidden_features,num_classes]
-        '''
-        for in_dims,out_dims in zip(all_dims[:-1],all_dims[1:]):
-            blocks.append(Linear(in_dims,out_dims))
-            blocks.append(non_linearity)
-        '''
         blocks.append(Linear(in_features,hidden_features[0]))
-        blocks.append(non_linearity)
-        for count,_ in enumerate( hidden_features):
-            if count == len(hidden_features)-1:
-                break
-            blocks.append(Linear(hidden_features[count],hidden_features[count+1]))
-            blocks.append(non_linearity)
+        if activation == 'relu':
+            blocks.append(ReLU())
+        elif activation == 'sigmoid':
+            blocks.append(Sigmoid())
+            
+        for idx in range(len(hidden_features)-1):
+            
+            blocks.append(Linear(hidden_features[idx],hidden_features[idx+1]))
+            
+            if activation == 'relu':
+                blocks.append(ReLU())
+            elif activation == 'sigmoid':
+                blocks.append(Sigmoid())            
         blocks.append(Linear(hidden_features[-1],num_classes))
+        
         # ========================
 
         self.sequence = Sequential(*blocks)
