@@ -64,7 +64,24 @@ def run_experiment(run_name, out_dir='./results', seed=None, device=None,
     #   for you automatically.
     fit_res = None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    in_size = ds_train[0][0].shape
+    out_classes = 10
+
+    dl_train = torch.utils.data.DataLoader(ds_train, bs_train, shuffle=False)
+    dl_test = torch.utils.data.DataLoader(ds_test, bs_test, shuffle=False)
+
+    channels = [filter for filter in filters_per_layer for _ in range(layers_per_block)]
+
+    if model_type == 'cnn':
+        model = cnn.ConvClassifier(in_size, out_classes, channels, pool_every, hidden_dims)
+    elif model_type == 'resnet':
+        model = cnn.ResNetClassifier(in_size, out_classes, channels, pool_every, hidden_dims)
+
+    entropy_loss = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+    trainer = training.TorchTrainer(model, entropy_loss, optimizer, device)
+    fit_res = trainer.fit(dl_train, dl_test, epochs, checkpoints, early_stopping, **kw)
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)

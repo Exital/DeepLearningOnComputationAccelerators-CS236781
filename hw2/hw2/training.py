@@ -75,13 +75,44 @@ class Trainer(abc.ABC):
             # ====== YOUR CODE: ======
             
             train_epoch_res = self.train_epoch(dl_train,**kw)
-            curr_accuracy = train_epoch_res[1]
-            train_acc.append(curr_accuracy)
-            epoch_loss = torch.tensor(train_epoch_res[0])
-            print(epoch_loss.shape)
+            curr_train_accuracy = train_epoch_res[1]
+            train_acc.append(curr_train_accuracy)
+            curr_train_loss = sum(train_epoch_res[0]).item() / len(train_epoch_res[0])
+            # TODO remove print
+            print('Epoch '+ str(epoch) + ' train loss: ' + str(curr_train_loss))
+            train_loss.append(curr_train_loss)
             
-            if best_acc is None:
-                best_acc = curr_accuracy
+            test_epoch_res = self.test_epoch(dl_test,**kw)
+            curr_test_accuracy = test_epoch_res[1]
+            test_acc.append(curr_test_accuracy)
+            curr_test_loss = sum(test_epoch_res[0]).item() / len(test_epoch_res[0])
+            # TODO remove print
+            print('Epoch '+ str(epoch) + ' test loss: ' + str(curr_test_loss))
+
+            if len(test_loss) > 0 and test_loss[-1] >= curr_test_loss:
+                epochs_without_improvement += 1
+            else:
+                epochs_without_improvement = 0
+
+            test_loss.append(curr_test_loss)
+
+            if early_stopping is not None and early_stopping == epochs_without_improvement:
+                break
+
+            if best_acc is None or best_acc < curr_test_accuracy:
+                best_acc = curr_test_accuracy
+
+                if checkpoints is not None:
+                    checkpoint_dict =   {
+                                            'in_size': self.model.in_size,
+                                            'out_classes': self.model.out_classes,
+                                            'channels' : self.model.channels,
+                                            'pool_every' : self.model.pool_every,
+                                            'hidden_dims': [each.out_classes for each in self.model.hidden_dims],
+                                            'state_dict': self.model.state_dict()
+                                        }
+
+                    torch.save(checkpoint_dict, checkpoints)
             
             # ========================
 
