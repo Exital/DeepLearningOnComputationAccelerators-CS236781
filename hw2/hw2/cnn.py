@@ -30,6 +30,7 @@ class ConvClassifier(nn.Module):
         self.channels = channels
         self.pool_every = pool_every
         self.hidden_dims = hidden_dims
+        self.pool_cntr = 0
 
         self.feature_extractor = self._make_feature_extractor()
         self.classifier = self._make_classifier()
@@ -59,6 +60,7 @@ class ConvClassifier(nn.Module):
             # Adding maxpool after every p convolutions 
             if (idx-1)%self.pool_every == 0:
                 layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
+                self.pool_cntr = self.pool_cntr+1
         # Last maxpool layer
         #layers.append(nn.MaxPool2d(kernel_size = 2))
         # Append the remaining convolutions and relu
@@ -72,19 +74,8 @@ class ConvClassifier(nn.Module):
 
     def _make_classifier(self):
         N = len(self.channels)
-        # overall pulling operators
-        N = N//self.pool_every 
         M = len(self.hidden_dims)
         in_channels, in_h, in_w, = tuple(self.in_size)
-        
-        # we had N//pool_every max pooling operations, number of output channels is
-        # channels[-1] and we started with an image size of in_h*in_w 
-        
-        if len(self.channels) == 1:
-            MLP_in_dim = (self.channels[-1])*in_h*in_w
-        else:
-            MLP_in_dim = (self.channels[-1])*(in_h//(2**N))*(in_w//(2**N))
-        
         layers = []
         # TODO: Create the classifier part of the model:
         #  (Linear -> ReLU)*M -> Linear
@@ -92,14 +83,15 @@ class ConvClassifier(nn.Module):
         #  the first linear layer.
         #  The last Linear layer should have an output dim of out_classes.
         # ====== YOUR CODE: ======
-        layers.append(nn.Linear(MLP_in_dim,self.hidden_dims[0]))
-        layers.append(nn.ReLU())
-        for idx in range(M-1):
-            layers.append(nn.Linear(self.hidden_dims[idx],self.hidden_dims[idx+1],bias=True))
-            layers.append(nn.ReLU())
-                
-        layers.append(nn.Linear(self.hidden_dims[-1],self.out_classes,bias=True))
         
+        mlp_in_dims = self.channels[-1] * (in_h//(2**self.pool_cntr))*(in_w//(2**self.pool_cntr))
+
+        for idx in range(M):
+            layers.append(nn.Linear(mlp_in_dims,self.hidden_dims[idx]))
+            layers.append(nn.ReLU())
+            mlp_in_dims = self.hidden_dims[idx]
+
+        layers.append(nn.Linear(mlp_in_dims,self.out_classes))
         # ========================
         seq = nn.Sequential(*layers)
         return seq
