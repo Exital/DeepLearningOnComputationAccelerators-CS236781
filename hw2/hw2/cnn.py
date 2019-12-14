@@ -61,6 +61,7 @@ class ConvClassifier(nn.Module):
             if (idx-1)%self.pool_every == 0:
                 layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
                 self.pool_cntr = self.pool_cntr+1
+                
         # Last maxpool layer
         #layers.append(nn.MaxPool2d(kernel_size = 2))
         # Append the remaining convolutions and relu
@@ -205,7 +206,8 @@ class ResNetClassifier(ConvClassifier):
 
         layers.append(ResidualBlock(in_channels,self.channels[0:self.pool_every],[3]*self.pool_every))
         layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
-
+        self.pool_cntr = self.pool_cntr + 1
+        
         N = len(self.channels)
         N_divisable = N - N % self.pool_every
         remaining = N % self.pool_every
@@ -217,6 +219,7 @@ class ResNetClassifier(ConvClassifier):
                 continue
             layers.append(ResidualBlock(self.channels[idx-1],self.channels[idx:idx+self.pool_every],[3]*self.pool_every))
             layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
+            self.pool_cntr = self.pool_cntr + 1
             
         
         if remaining > 0 :
