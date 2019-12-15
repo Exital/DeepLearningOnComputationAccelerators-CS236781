@@ -74,7 +74,7 @@ class ConvClassifier(nn.Module):
         return seq
 
     def _make_classifier(self):
-        N = len(self.channels)
+        
         M = len(self.hidden_dims)
         in_channels, in_h, in_w, = tuple(self.in_size)
         layers = []
@@ -84,8 +84,17 @@ class ConvClassifier(nn.Module):
         #  the first linear layer.
         #  The last Linear layer should have an output dim of out_classes.
         # ====== YOUR CODE: ======
+        h_denom = 2**self.pool_cntr
+        w_denom = 2**self.pool_cntr
         
-        mlp_in_dims = self.channels[-1] * (in_h//(2**self.pool_cntr))*(in_w//(2**self.pool_cntr))
+        '''
+        if in_h < h_denom:
+            h_denom = in_h
+        if in_w < w_denom:
+            w_denom = in_w
+        '''
+        
+        mlp_in_dims = self.channels[-1] * (in_h//h_denom)*(in_w//w_denom)
 
         for idx in range(M):
             layers.append(nn.Linear(mlp_in_dims,self.hidden_dims[idx]))
@@ -203,8 +212,9 @@ class ResNetClassifier(ConvClassifier):
         # ====== YOUR CODE: ======
         
         # Appending the first conv layer and after that relu        
-
-        layers.append(ResidualBlock(in_channels,self.channels[0:self.pool_every],[3]*self.pool_every))
+        num_ker = len(self.channels[0:self.pool_every])
+        
+        layers.append(ResidualBlock(in_channels,self.channels[0:self.pool_every],[3]*num_ker))
         layers.append(nn.MaxPool2d(kernel_size = 2,stride=2))
         self.pool_cntr = self.pool_cntr + 1
         
