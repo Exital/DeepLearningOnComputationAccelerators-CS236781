@@ -321,15 +321,25 @@ class Dropout(Block):
         #  Notice that contrary to previous blocks, this block behaves
         #  differently a according to the current training_mode (train/test).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        if self.training_mode and self.p != 1:
+            drop_mat = torch.bernoulli(torch.ones(x.shape))
+            drop_mat = (1-self.p)*drop_mat
+            out = (1/(1-self.p))*x*drop_mat
+            self.drop_mat = drop_mat         
+        else:            
+            out = x        
         # ========================
-
         return out
 
     def backward(self, dout):
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        if self.training_mode and self.p != 1:
+            drop_mat = self.drop_mat
+            p = self.p
+            dx = dout*(1/(1-p))*drop_mat
+        else:
+            dx = dout        
         # ========================
 
         return dx
@@ -437,8 +447,13 @@ class MLP(Block):
         blocks.append(Linear(in_features,hidden_features[0]))
         if activation == 'relu':
             blocks.append(ReLU())
+            if dropout > 0:
+                blocks.append(Dropout(dropout))
+                
         elif activation == 'sigmoid':
             blocks.append(Sigmoid())
+            #if dropout > 0:
+            #    blocks.append(Dropout(dropout))
             
         for idx in range(len(hidden_features)-1):
             
@@ -446,8 +461,14 @@ class MLP(Block):
             
             if activation == 'relu':
                 blocks.append(ReLU())
+                if dropout > 0:
+                    blocks.append(Dropout(dropout))
+                
             elif activation == 'sigmoid':
-                blocks.append(Sigmoid())            
+                blocks.append(Sigmoid())
+                #if dropout > 0:
+                #    blocks.append(Dropout(dropout))
+                
         blocks.append(Linear(hidden_features[-1],num_classes))
         
         # ========================
