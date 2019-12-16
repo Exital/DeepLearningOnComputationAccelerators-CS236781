@@ -21,7 +21,7 @@ def part2_overfit_hp():
 
 
 def part2_optim_hp():
-    wstd, lr_vanilla, lr_momentum, lr_rmsprop, reg, = 0.1, 0.01, 0.004, 0.001, 0.01
+    wstd, lr_vanilla, lr_momentum, lr_rmsprop, reg, = 0.09, 0.001, 0.004, 0.0002, 0.001
 
     # TODO: Tweak the hyperparameters to get the best results you can.
     # You may want to use different learning rates for each optimizer.
