@@ -122,11 +122,9 @@ class Linear(Block):
         # ====== YOUR CODE: ======
         
         dx = dout@self.w
-        dw = dout.T@x
-        self.dw = self.dw + dw
-        db = dout.T@torch.ones(dout.shape[0])
-        self.db = self.db + db
-        
+        self.dw += dout.T@x
+        self.db += dout.T@torch.ones(dout.shape[0])
+
         # ========================
 
         return dx

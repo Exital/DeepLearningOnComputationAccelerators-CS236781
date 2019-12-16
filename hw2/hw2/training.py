@@ -254,6 +254,7 @@ class BlocksTrainer(Trainer):
         outputs = self.model(X)
         loss = self.loss_fn(outputs,y)
         _,predicted = torch.max(outputs.data, 1)
+
         num_correct = (predicted == y).sum().item()
             
         # ========================
