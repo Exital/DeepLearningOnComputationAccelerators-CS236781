@@ -74,9 +74,13 @@ def run_experiment(run_name, out_dir='./results', seed=None, device=None,
 
     if model_type == 'cnn':
         model = cnn.ConvClassifier(in_size, out_classes, channels, pool_every, hidden_dims)
+        
     elif model_type == 'resnet':
         model = cnn.ResNetClassifier(in_size, out_classes, channels, pool_every, hidden_dims)
-
+    
+    elif model_type == 'ycn':
+        model = cnn.YourCodeNet(in_size, out_classes, channels, pool_every, hidden_dims)
+    
     model = model.to(device)
     
     entropy_loss = torch.nn.CrossEntropyLoss()
