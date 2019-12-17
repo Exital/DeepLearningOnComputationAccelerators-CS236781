@@ -77,6 +77,8 @@ def run_experiment(run_name, out_dir='./results', seed=None, device=None,
     elif model_type == 'resnet':
         model = cnn.ResNetClassifier(in_size, out_classes, channels, pool_every, hidden_dims)
 
+    model = model.to(device)
+    
     entropy_loss = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
