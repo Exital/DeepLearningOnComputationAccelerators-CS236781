@@ -87,15 +87,15 @@ class Trainer(abc.ABC):
             test_acc.append(curr_test_accuracy)
             curr_test_loss = sum(test_epoch_res[0]).item() / len(test_epoch_res[0])
             # TODO remove print
-            print('Epoch '+ str(epoch) + ' test loss: ' + str(curr_test_loss))
+            #print('Epoch '+ str(epoch) + ' test loss: ' + str(curr_test_loss))
 
-            if len(test_loss) > 0 and test_loss[-1] >= curr_test_loss:
+            if len(test_loss) > 0 and test_loss[-1] < curr_test_loss:
                 epochs_without_improvement += 1
             else:
                 epochs_without_improvement = 0
 
             test_loss.append(curr_test_loss)
-
+            
             if early_stopping is not None and early_stopping == epochs_without_improvement:
                 break
 
