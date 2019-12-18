@@ -54,7 +54,8 @@ class Trainer(abc.ABC):
         """
         actual_num_epochs = 0
         train_loss, train_acc, test_loss, test_acc = [], [], [], []
-
+        lr_drop_count = 0
+        
         best_acc = None
         epochs_without_improvement = 0
 
@@ -73,6 +74,7 @@ class Trainer(abc.ABC):
             #    save the model to the file specified by the checkpoints
             #    argument.
             # ====== YOUR CODE: ======
+            
             
             train_epoch_res = self.train_epoch(dl_train,**kw)
             curr_train_accuracy = train_epoch_res[1]

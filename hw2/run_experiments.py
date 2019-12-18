@@ -9,7 +9,7 @@ torch.manual_seed(seed)
 for n_filters in [[32], [64]]:
     for n_layers in [2, 4, 8, 16]:
         experiments.run_experiment(
-            'test_run', seed=seed, bs_train=50, batches=10, epochs=10, early_stopping=5,
+            'exp1.1', seed=seed, bs_train=100, batches=10, epochs=60, early_stopping=5,
             filters_per_layer=n_filters, layers_per_block=n_layers, pool_every=3, hidden_dims=[100],
             model_type='resnet',
         )
@@ -19,8 +19,8 @@ for n_filters in [[32], [64]]:
 for n_layers in [2, 4, 8]:
     for n_filters in [[32], [64], [128], [256]]:
         experiments.run_experiment(
-            'test_run', seed=seed, bs_train=50, batches=10, epochs=10, early_stopping=5,
-            filters_per_layer=n_filters, layers_per_block=n_layers, pool_every=3, hidden_dims=[100],
+            'exp1.2', seed=seed, bs_train=100, batches=10, epochs=60, early_stopping=5,
+            filters_per_layer=n_filters, layers_per_block=n_layers, pool_every=2, hidden_dims=[100],
             model_type='resnet',
         )
 
@@ -28,22 +28,36 @@ for n_layers in [2, 4, 8]:
 # Experiments 1.3
 for n_layers in [1, 2, 3, 4]:
     experiments.run_experiment(
-        'test_run', seed=seed, bs_train=50, batches=10, epochs=10, early_stopping=5,
+        'exp1.3', seed=seed, bs_train=100, batches=10, epochs=60, early_stopping=5,
         filters_per_layer=[64, 128, 256], layers_per_block=n_layers, pool_every=3, hidden_dims=[100],
         model_type='resnet',
     )
 
  # Experiments 1.4
 for n_layers in [8, 16, 32]:
+    pool_every = int(n_layers // 4)
     experiments.run_experiment(
-        'test_run', seed=seed, bs_train=50, batches=10, epochs=10, early_stopping=5,
-        filters_per_layer=[32], layers_per_block=n_layers, pool_every=3, hidden_dims=[100],
+        'exp1.4.1', seed=seed, bs_train=100, batches=10, epochs=60, early_stopping=5,
+        filters_per_layer=[32], layers_per_block=n_layers, pool_every=pool_every, hidden_dims=[100],
         model_type='resnet',
     )
 
 for n_layers in [2, 4, 8]:
+    if n_layers == 8:
+        pool_every = 8
+    else:
+        pool_every = 3
     experiments.run_experiment(
-        'test_run', seed=seed, bs_train=50, batches=10, epochs=10, early_stopping=5,
-        filters_per_layer=[64, 128, 256], layers_per_block=n_layers, pool_every=3, hidden_dims=[100],
+        'exp1.4.2', seed=seed, bs_train=100, batches=10, epochs=60, early_stopping=5,
+        filters_per_layer=[64, 128, 256], layers_per_block=n_layers, pool_every=pool_every, hidden_dims=[100],
         model_type='resnet',
+    )
+
+
+# Experiments 2
+for n_layers in [3, 6, 9, 12]:
+    experiments.run_experiment(
+        'exp2', seed=seed, bs_train=100, batches=10, epochs=60, early_stopping=5,
+        filters_per_layer=[32, 64, 128], layers_per_block=n_layers, pool_every=n_layers, hidden_dims=[200, 100],
+        model_type='ycn',
     )
