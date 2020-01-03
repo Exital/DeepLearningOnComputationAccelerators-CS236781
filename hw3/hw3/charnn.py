@@ -124,7 +124,30 @@ def chars_to_labelled_samples(text: str, char_to_idx: dict, seq_len: int,
     #  3. Create the labels tensor in a similar way and convert to indices.
     #  Note that no explicit loops are required to implement this function.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    # create an embeding for the text 
+    embeded_text = []
+    for s in text:
+        embeded_text.append(char_to_idx[s])
+        
+    #droping the end of the text so it will fit in size
+    shift_embed_text = embeded_text[1:]
+    
+    N = len(text)//seq_len
+    shift_embed_text = shift_embed_text[:N*seq_len] 
+    
+    embeded_text = embeded_text[0:N*seq_len]
+    emb_dim = len(char_to_idx)
+     
+    #creating sequences
+    samples = chars_to_onehot(text[:N*seq_len],char_to_idx)
+    samples = samples.view(N,seq_len,emb_dim)
+    
+    #creating labels
+    labels = torch.tensor(shift_embed_text[:N*seq_len])
+    labels = labels.view(N,-1)
+    
+    samples.to(device)
+    labels.to(device)
     # ========================
     return samples, labels
 
@@ -208,7 +231,8 @@ class SequenceBatchSampler(torch.utils.data.Sampler):
         #  you can drop it.
         idx = None  # idx should be a 1-d list of indices.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        N = int(self.batch_size*(len(self.dataset)//self.batch_size))
+        idx = [i for i in range(0,N) ]
         # ========================
         return iter(idx)
 
@@ -254,7 +278,48 @@ class MultilayerGRU(nn.Module):
         #      then call self.register_parameter() on them. Also make
         #      sure to initialize them. See functions in torch.nn.init.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        
+        #self.sigmoid = nn.Sigmoid()
+        #self.tanh = nn.Tanh()
+        
+        # Dropout layer 
+        self.drop_layer = nn.Dropout(dropout)
+        
+        for layer in range(self.n_layers):
+            input_dim = self.h_dim
+            if layer == 0:
+                input_dim = self.in_dim
+           
+            # Define parameters for update gate (z)
+            W_xz = nn.Linear(input_dim,self.h_dim,bias = False)
+            W_hz = nn.Linear(self.h_dim,self.h_dim)
+            
+            # Define parameters for reset gate (r)
+            W_xr = nn.Linear(input_dim,self.h_dim,bias = False)
+            W_hr = nn.Linear(self.h_dim,self.h_dim)
+            
+            # Define parameters for candidate (g)
+            W_xg = nn.Linear(input_dim,self.h_dim,bias = False)
+            W_hg = nn.Linear(self.h_dim,self.h_dim)
+            
+            # Adding modules for update gate (z)
+            self.add_module(name= 'W_xz_layer_{}'.format(layer), module=W_xz)
+            self.add_module(name= 'W_hz_layer_{}'.format(layer), module=W_hz)
+            
+            # Adding modules for reset gate (r)
+            self.add_module(name= 'W_xr_layer_{}'.format(layer), module=W_xr)
+            self.add_module(name= 'W_hr_layer_{}'.format(layer), module=W_hr)
+            
+            # Adding modules for candidate (g)
+            self.add_module(name= 'W_xg_layer_{}'.format(layer), module=W_xg)
+            self.add_module(name= 'W_hg_layer_{}'.format(layer), module=W_hg)
+            
+            
+            
+        # Last layer
+        W_y = nn.Linear(self.h_dim,self.out_dim)
+        self.add_module(name= 'W_y', module=W_y)    
+        
         # ========================
 
     def forward(self, input: Tensor, hidden_state: Tensor = None):
@@ -291,6 +356,7 @@ class MultilayerGRU(nn.Module):
         #  Tip: You can use torch.stack() to combine multiple tensors into a
         #  single tensor in a differentiable manner.
         # ====== YOUR CODE: ======
+        self.to(device=input.device)
         raise NotImplementedError()
         # ========================
         return layer_output, hidden_state
