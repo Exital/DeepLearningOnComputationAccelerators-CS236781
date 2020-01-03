@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.utils.data
 from torch import Tensor
 
-
 def char_maps(text: str):
     """
     Create mapping from the unique chars in a text to integers and
@@ -282,8 +281,8 @@ class MultilayerGRU(nn.Module):
         #self.sigmoid = nn.Sigmoid()
         #self.tanh = nn.Tanh()
         
-        # Dropout layer 
-        self.drop_layer = nn.Dropout(dropout)
+        # TODO -   Dropout layer 
+        #self.drop_layer = nn.Dropout(dropout)
         
         for layer in range(self.n_layers):
             input_dim = self.h_dim
@@ -302,6 +301,12 @@ class MultilayerGRU(nn.Module):
             W_xg = nn.Linear(input_dim,self.h_dim,bias = False)
             W_hg = nn.Linear(self.h_dim,self.h_dim)
             
+            # Dropout
+            dropout_layer = nn.Dropout(dropout)
+            
+            # Appending the model parameters  
+            self.layer_params.append((W_xz , W_hz , W_xr , W_hr , W_xg , W_hg ,dropout_layer))
+            
             # Adding modules for update gate (z)
             self.add_module(name= 'W_xz_layer_{}'.format(layer), module=W_xz)
             self.add_module(name= 'W_hz_layer_{}'.format(layer), module=W_hz)
@@ -314,11 +319,14 @@ class MultilayerGRU(nn.Module):
             self.add_module(name= 'W_xg_layer_{}'.format(layer), module=W_xg)
             self.add_module(name= 'W_hg_layer_{}'.format(layer), module=W_hg)
             
+            # Add dropout
+            self.add_module(name= 'dropout_{}'.format(layer), module=dropout_layer)
             
-            
-        # Last layer
-        W_y = nn.Linear(self.h_dim,self.out_dim)
-        self.add_module(name= 'W_y', module=W_y)    
+        # Output layer
+        self.W_y = nn.Linear(self.h_dim,self.out_dim)
+        # TODO delete
+        #self.layer_params.append((W_y))
+        #self.add_module(name= 'W_y', module=W_y)    
         
         # ========================
 
@@ -356,7 +364,38 @@ class MultilayerGRU(nn.Module):
         #  Tip: You can use torch.stack() to combine multiple tensors into a
         #  single tensor in a differentiable manner.
         # ====== YOUR CODE: ======
-        self.to(device=input.device)
-        raise NotImplementedError()
+        self.to(device=layer_input.device)
+        out_list = []
+        for seq in range(seq_len):
+            X_t = layer_input[:,seq,:]
+            for idx in range(self.n_layers):
+                model_params = self.layer_params[idx]
+                hidden_i = layer_states[idx]
+                
+                # Extracting parameters
+                W_xz = model_params[0]
+                W_hz = model_params[1]
+                W_xr = model_params[2]
+                W_hr = model_params[3]
+                W_xg = model_params[4]
+                W_hg = model_params[5]
+                drop_l = model_params[6]
+                
+                # Computing the gates and next state
+                Z_t = torch.sigmoid( W_xz(X_t) + W_hz(hidden_i))
+                r_t = torch.sigmoid( W_xr(X_t) + W_hr(hidden_i))
+                g_t = torch.tanh(W_xg(X_t) + W_hg((r_t*hidden_i)))
+                
+                new_hidden = Z_t*hidden_i + (1-Z_t)*g_t
+                
+                # New hidden state for next layer 
+                layer_states[idx] = drop_l(new_hidden)
+                
+                X_t = new_hidden
+                
+            out_list.append(self.W_y(X_t))
+                
+        layer_output = torch.stack(out_list,dim=1)
+        hidden_state = torch.stack(layer_states,dim=1)
         # ========================
         return layer_output, hidden_state
