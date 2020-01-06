@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class EncoderConvBlock(nn.Module):
     """
-    A general purpose residual block.
+    a convolution block for the encoder
     """
 
     def __init__(self, in_channels: int, channels: list, kernel_sizes: list,
@@ -26,7 +26,7 @@ class EncoderConvBlock(nn.Module):
         assert channels and kernel_sizes
         assert len(channels) == len(kernel_sizes)
         assert all(map(lambda x: x % 2 == 1, kernel_sizes))
-
+        self.out_channels = channels[-1]
         self.main_path= None
 
         # DONE: Implement a generic residual block.
@@ -144,7 +144,7 @@ class DecoderCNN(nn.Module):
         self.out_channels = out_channels 
         self.up_sample = nn.Upsample(scale_factor=2, mode='bilinear',align_corners=True)
         
-        self.first_layer_channels = [8,16,32]
+        self.first_layer_channels = [128,64,32]
         self.first_layer_kernels = [5,5,5]
         
         self.second_layer_channels = [32,64,128]
@@ -193,12 +193,25 @@ class VAE(nn.Module):
         self.features_encoder = features_encoder
         self.features_decoder = features_decoder
         self.z_dim = z_dim
-
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') 
         self.features_shape, n_features = self._check_features(in_size)
-
+        
         # TODO: Add more layers as needed for encode() and decode().
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.enc_out_dim = self._check_features(in_size)
+
+
+        self.in_fc_dim = self.enc_out_dim[1]
+        # Adding fc layers to represent the NN for mu and sigma
+
+        self.mu_fc = nn.Sequential(nn.Linear(self.in_fc_dim,self.z_dim))
+        
+        self.log_sigma2_fc = nn.Sequential(nn.Linear(self.in_fc_dim,self.z_dim))
+        
+        
+        self.rec_fc = nn.Sequential(nn.Linear(self.z_dim,self.in_fc_dim))
+        
+        
         # ========================
 
     def _check_features(self, in_size):
@@ -219,7 +232,12 @@ class VAE(nn.Module):
         #     log_sigma2 (mean and log variance) of q(Z|x).
         #  2. Apply the reparametrization trick to obtain z.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        encoded_features = self.features_encoder(x)
+
+        mu = self.mu_fc(encoded_features.view(encoded_features.shape[0],-1))
+        log_sigma2 = self.log_sigma2_fc(encoded_features.view(encoded_features.shape[0],-1))
+        u = torch.randn(encoded_features.shape[0],self.z_dim).to(self.device )
+        z = torch.exp(log_sigma2)*u + mu
         # ========================
 
         return z, mu, log_sigma2
@@ -230,7 +248,15 @@ class VAE(nn.Module):
         #  1. Convert latent z to features h with a linear layer.
         #  2. Apply features decoder.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        
+        z_dec = self.rec_fc(z)
+        
+        
+        # z.shape[0],self.features_shape
+        
+        z_dec = z_dec.view(z.shape[0],self.features_shape[0],self.features_shape[1],self.features_shape[2])
+        
+        x_rec = self.features_decoder(z_dec)
         # ========================
 
         # Scale to [-1, 1] (same dynamic range as original images).
