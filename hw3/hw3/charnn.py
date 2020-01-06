@@ -162,7 +162,8 @@ def hot_softmax(y, dim=0, temperature=1.0):
     """
     # TODO: Implement based on the above.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    result = y/temperature
+    result = torch.softmax(result,dim = dim)
     # ========================
     return result
 
@@ -198,7 +199,9 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     #  necessary for this. Best to disable tracking for speed.
     #  See torch.no_grad().
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    
+    
+     
     # ========================
 
     return out_text

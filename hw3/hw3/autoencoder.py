@@ -3,12 +3,79 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class EncoderConvBlock(nn.Module):
+    """
+    A general purpose residual block.
+    """
+
+    def __init__(self, in_channels: int, channels: list, kernel_sizes: list,
+                 batchnorm=True, dropout=0.2):
+        """
+        :param in_channels: Number of input channels to the first convolution.
+        :param channels: List of number of output channels for each
+        convolution in the block. The length determines the number of
+        convolutions.
+        :param kernel_sizes: List of kernel sizes (spatial). Length should
+        be the same as channels. Values should be odd numbers.
+        :param batchnorm: True/False whether to apply BatchNorm between
+        convolutions.
+        :param dropout: Amount (p) of Dropout to apply between convolutions.
+        Zero means don't apply dropout.
+        """
+        super().__init__()
+        assert channels and kernel_sizes
+        assert len(channels) == len(kernel_sizes)
+        assert all(map(lambda x: x % 2 == 1, kernel_sizes))
+
+        self.main_path= None
+
+        # DONE: Implement a generic residual block.
+        #  Use the given arguments to create two nn.Sequentials:
+        #  the main_path, which should contain the convolution, dropout,
+        #  batchnorm, relu sequences, and the shortcut_path which should
+        #  represent the skip-connection.
+        #  Use convolutions which preserve the spatial extent of the input.
+        #  For simplicity of implementation, we'll assume kernel sizes are odd.
+        # ====== YOUR CODE: ======
+        main_layers = []
+        
+        # constructing the input layer 
+        # we assume kernel sizes are odd so to preserve spacial dimentions we 
+        # padd with the kernel size divided by 2
+        padding = kernel_sizes[0]//2
+        main_layers.append(nn.Conv2d(in_channels,channels[0],kernel_sizes[0],padding = padding))
+        main_layers.append(nn.Dropout2d(dropout))
+        if batchnorm ==True:    
+            main_layers.append(nn.BatchNorm2d(channels[0]))
+        main_layers.append(nn.ELU(alpha = 0.5)) 
+        
+        
+        for idx in range(len(channels)-1):
+            padding = kernel_sizes[idx+1]//2
+            main_layers.append(nn.Conv2d(channels[idx],channels[idx +1],kernel_sizes[idx+1],padding = padding))
+
+            if idx < len(channels)-2:    
+                #main_layers.append(nn.ReLU())
+                main_layers.append(nn.ELU(alpha = 0.5))
+                main_layers.append(nn.Dropout2d(dropout))
+                if batchnorm ==True:    
+                    main_layers.append(nn.BatchNorm2d(channels[idx + 1]))
+                        
+        self.main_path = nn.Sequential(*main_layers)
+        # ========================
+
+    def forward(self, x):
+        out = self.main_path(x)
+        out = torch.relu(out)
+        return out
+
+
+
 class EncoderCNN(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
 
         modules = []
-
         # TODO:
         #  Implement a CNN. Save the layers in the modules list.
         #  The input shape is an image batch: (N, in_channels, H_in, W_in).
@@ -19,7 +86,38 @@ class EncoderCNN(nn.Module):
         #  use pooling or only strides, use any activation functions,
         #  use BN or Dropout, etc.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.in_channels = in_channels 
+        self.out_channels = out_channels 
+        self.max_pool = nn.MaxPool2d(kernel_size = 2,stride=2)
+        # Define the modules list
+        
+        self.first_layer_channels = [8,16,32]
+        self.first_layer_kernels = [5,5,5]
+        
+        self.second_layer_channels = [32,64,128]
+        self.second_layer_kernels = [5,3,3]
+        
+        self.third_layer_channels = [128,64,self.out_channels]
+        self.third_layer_kernels = [3,3,3]
+        
+        modules.append(EncoderConvBlock(self.in_channels,self.first_layer_channels
+                                 ,self.first_layer_kernels))
+        
+        modules.append(self.max_pool)
+        
+        
+        modules.append(EncoderConvBlock(self.first_layer_channels[-1],self.second_layer_channels
+                                 ,self.second_layer_kernels))
+        
+        modules.append(self.max_pool)
+        
+        
+        modules.append(EncoderConvBlock(self.second_layer_channels[-1],self.third_layer_channels
+                                 ,self.third_layer_kernels))
+        
+        modules.append(self.max_pool)
+        
+                
         # ========================
         self.cnn = nn.Sequential(*modules)
 
@@ -42,7 +140,37 @@ class DecoderCNN(nn.Module):
         #  output should be a batch of images, with same dimensions as the
         #  inputs to the Encoder were.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.in_channels = in_channels 
+        self.out_channels = out_channels 
+        self.up_sample = nn.Upsample(scale_factor=2, mode='bilinear',align_corners=True)
+        
+        self.first_layer_channels = [8,16,32]
+        self.first_layer_kernels = [5,5,5]
+        
+        self.second_layer_channels = [32,64,128]
+        self.second_layer_kernels = [5,3,3]
+        
+        self.third_layer_channels = [128,64,self.out_channels]
+        self.third_layer_kernels = [3,3,3]
+        
+        modules.append(EncoderConvBlock(self.in_channels,self.first_layer_channels
+                                 ,self.first_layer_kernels))
+        
+        modules.append(self.up_sample)
+        
+        
+        modules.append(EncoderConvBlock(self.first_layer_channels[-1],self.second_layer_channels
+                                 ,self.second_layer_kernels))
+        
+        modules.append(self.up_sample)
+        
+        
+        modules.append(EncoderConvBlock(self.second_layer_channels[-1],self.third_layer_channels
+                                 ,self.third_layer_kernels))
+        
+        modules.append(self.up_sample)        
+        
+        
         # ========================
         self.cnn = nn.Sequential(*modules)
 
