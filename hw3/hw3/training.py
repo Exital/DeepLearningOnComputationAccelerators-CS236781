@@ -269,7 +269,7 @@ class VAETrainer(Trainer):
         self.optinmizer.zero_grad()
         xr = self.model(x)
         z, mu, log_sigma2 =self.model.encode(x)
-        loss = self.loss_fn(x,xr,mu,log_sigma2,0.9)
+        loss = self.loss_fn(x,xr,mu,log_sigma2)
         loss.backwards()
         self.optimizer.step()
         
@@ -288,7 +288,7 @@ class VAETrainer(Trainer):
             self.optinmizer.zero_grad()
             xr = self.model(x)
             z, mu, log_sigma2 =self.model.encode(x)
-            loss = self.loss_fn(x,xr,mu,log_sigma2,0.9)
+            loss = self.loss_fn(x,xr,mu,log_sigma2)
             loss.backwards()
             self.optimizer.step()
         
