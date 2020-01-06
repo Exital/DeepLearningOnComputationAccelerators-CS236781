@@ -237,7 +237,7 @@ class VAE(nn.Module):
         mu = self.mu_fc(encoded_features.view(encoded_features.shape[0],-1))
         log_sigma2 = self.log_sigma2_fc(encoded_features.view(encoded_features.shape[0],-1))
         u = torch.randn(encoded_features.shape[0],self.z_dim).to(self.device )
-        z = torch.exp(log_sigma2)*u + mu
+        z = torch.exp(0.5*log_sigma2)*u + mu
         # ========================
 
         return z, mu, log_sigma2
@@ -305,7 +305,7 @@ def vae_loss(x, xr, z_mu, z_log_sigma2, x_sigma2):
     #  1. The covariance matrix of the posterior is diagonal.
     #  2. You need to average over the batch dimension.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    
     # ========================
 
     return loss, data_loss, kldiv_loss
