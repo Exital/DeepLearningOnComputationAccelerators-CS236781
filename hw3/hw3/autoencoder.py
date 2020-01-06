@@ -236,7 +236,8 @@ class VAE(nn.Module):
 
         mu = self.mu_fc(encoded_features.view(encoded_features.shape[0],-1))
         log_sigma2 = self.log_sigma2_fc(encoded_features.view(encoded_features.shape[0],-1))
-        u = torch.randn(encoded_features.shape[0],self.z_dim).to(self.device )
+        u = torch.randn(encoded_features.shape[0],self.z_dim, requires_grad=True).to(self.device )
+        #u = torch.normal(torch.zeros_like(mu), torch.ones_like(mu))
         z = torch.exp(0.5*log_sigma2)*u + mu
         # ========================
 
@@ -275,7 +276,9 @@ class VAE(nn.Module):
             #  Instead of sampling from N(psi(z), sigma2 I), we'll just take
             #  the mean, i.e. psi(z).
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            z = torch.randn((n, self.z_dim), device=device)
+            x = self.decode(z)
+            samples = x.cpu() 
             # ========================
         return samples
 
@@ -305,7 +308,21 @@ def vae_loss(x, xr, z_mu, z_log_sigma2, x_sigma2):
     #  1. The covariance matrix of the posterior is diagonal.
     #  2. You need to average over the batch dimension.
     # ====== YOUR CODE: ======
+    N = x.shape[0]
+   # dim_z = z_mu.shape[-1]
+   # dim_x = x.shape[-1]
     
+    err = (x-xr)
+    
+    
+    dz = z_mu.shape[1]
+    dx = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
+    
+    data_loss = ((1/x_sigma2) * (err.norm())**2 / dx)
+    kldiv_loss = ((torch.exp(z_log_sigma2)).sum() + (z_mu.norm())**2 - (z_log_sigma2.sum())) / N - dz
+
+    loss = data_loss + kldiv_loss    
+
     # ========================
 
     return loss, data_loss, kldiv_loss
