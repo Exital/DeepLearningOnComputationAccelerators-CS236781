@@ -81,7 +81,7 @@ class Trainer(abc.ABC):
             train_acc.append(curr_train_accuracy)
             curr_train_loss = sum(train_epoch_res[0]).item() / len(train_epoch_res[0])
             # TODO remove print
-            print('Epoch '+ str(epoch) + ' train loss: ' + str(curr_train_loss))
+            #print('Epoch '+ str(epoch) + ' train loss: ' + str(curr_train_loss))
             train_loss.append(curr_train_loss)
             
             test_epoch_res = self.test_epoch(dl_test,**kw)

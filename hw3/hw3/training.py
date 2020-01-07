@@ -37,7 +37,7 @@ class Trainer(abc.ABC):
     def fit(self, dl_train: DataLoader, dl_test: DataLoader,
             num_epochs, checkpoints: str = None,
             early_stopping: int = None,
-            print_every=1, post_epoch_fn=None, **kw) -> FitResult:
+            print_every=10, post_epoch_fn=None, **kw) -> FitResult:
         """
         Trains the model for multiple epochs with a given training set,
         and calculates validation loss over a given validation set.
@@ -86,7 +86,49 @@ class Trainer(abc.ABC):
             #  - Implement early stopping. This is a very useful and
             #    simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            
+            train_epoch_res = self.train_epoch(dl_train,**kw)
+            curr_train_accuracy = train_epoch_res[1]
+            train_acc.append(curr_train_accuracy)
+            train_result = sum(train_epoch_res[0]) / len(train_epoch_res[0])
+            # TODO remove print
+            #print('Epoch '+ str(epoch) + ' train loss: ' + str(curr_train_loss))
+            train_loss.append(train_result)
+            
+            test_epoch_res = self.test_epoch(dl_test,**kw)
+            curr_test_accuracy = test_epoch_res[1]
+            test_acc.append(curr_test_accuracy)
+            test_result = sum(test_epoch_res[0]) / len(test_epoch_res[0])
+            # TODO remove print
+            #print('Epoch '+ str(epoch) + ' test loss: ' + str(curr_test_loss))
+
+            if len(test_loss) > 0 and test_loss[-1] < test_result:
+                epochs_without_improvement += 1
+            else:
+                epochs_without_improvement = 0
+
+            test_loss.append(test_result)
+            
+            if early_stopping is not None and early_stopping == epochs_without_improvement:
+                break
+
+            if best_acc is None or best_acc < curr_test_accuracy:
+                best_acc = curr_test_accuracy
+                '''
+                if checkpoints is not None:
+                    checkpoint_dict =   {
+                                            'in_size': self.model.in_size,
+                                            'out_classes': self.model.out_classes,
+                                            'channels' : self.model.channels,
+                                            'pool_every' : self.model.pool_every,
+                                            'hidden_dims': [each.out_classes for each in self.model.hidden_dims],
+                                            'state_dict': self.model.state_dict()
+                                        }
+
+                    torch.save(checkpoint_dict, checkpoints)
+                    '''
+            
+            
             # ========================
 
             # Save model checkpoint if requested
@@ -266,11 +308,14 @@ class VAETrainer(Trainer):
         # TODO: Train a VAE on one batch.
         # ====== YOUR CODE: ======
         self.model.train()
-        self.optinmizer.zero_grad()
-        xr = self.model(x)
-        z, mu, log_sigma2 =self.model.encode(x)
-        loss = self.loss_fn(x,xr,mu,log_sigma2)
-        loss.backwards()
+        self.optimizer.zero_grad()
+        xr, mu, log_sigma2 = self.model(x)
+        #z, mu, log_sigma2 =self.model.encode(x)
+        loss, data_loss, kldiv_loss = self.loss_fn(x,xr,mu,log_sigma2)
+        
+        print(loss)
+        
+        loss.backward()
         self.optimizer.step()
         
         # ========================
@@ -285,11 +330,11 @@ class VAETrainer(Trainer):
             # TODO: Evaluate a VAE on one batch.
             # ====== YOUR CODE: ======
             self.model.eval()
-            self.optinmizer.zero_grad()
-            xr = self.model(x)
-            z, mu, log_sigma2 =self.model.encode(x)
-            loss = self.loss_fn(x,xr,mu,log_sigma2)
-            loss.backwards()
+            self.optimizer.zero_grad()
+            xr, mu, log_sigma2 = self.model(x)
+            
+            loss, data_loss, kldiv_loss = self.loss_fn(x,xr,mu,log_sigma2)
+                       
             self.optimizer.step()
         
             # ========================
