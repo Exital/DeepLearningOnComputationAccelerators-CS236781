@@ -151,9 +151,6 @@ class DecoderConv(nn.Module):
         return out
 
 
-
-
-
 class EncoderCNN(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -185,7 +182,16 @@ class EncoderCNN(nn.Module):
     def forward(self, x):
         return self.cnn(x)
 
+    def SaveEncoder(self,filpath:str):
+        # Save the paremeters to initialize the model
+        checkpoint_dict = {'in_channels': self.in_channels,
+                           'out_channels': self.out_channels,
+                           'state_dict': self.state_dict()}
+        torch.save(checkpoint_dict,name)
+        
 
+        
+    
 class DecoderCNN(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -217,6 +223,9 @@ class DecoderCNN(nn.Module):
     def forward(self, h):
         # Tanh to scale to [-1, 1] (same dynamic range as original images).
         return torch.tanh(self.cnn(h))
+    
+    def SaveDec(name:str):
+        pass
 
 
 class VAE(nn.Module):
@@ -325,6 +334,15 @@ class VAE(nn.Module):
     def forward(self, x):
         z, mu, log_sigma2 = self.encode(x)
         return self.decode(z), mu, log_sigma2
+    
+    def LoadEncoder(self,file_path):
+        pass
+    
+    def LoadDecoder(self,file_path):
+        pass
+        
+    def SaveModel(checkpoints:str):
+        pass
 
 
 def vae_loss(x, xr, z_mu, z_log_sigma2, x_sigma2):

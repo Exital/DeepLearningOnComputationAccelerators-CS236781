@@ -116,16 +116,7 @@ class Trainer(abc.ABC):
                 best_acc = curr_test_accuracy
                 '''
                 if checkpoints is not None:
-                    checkpoint_dict =   {
-                                            'in_size': self.model.in_size,
-                                            'out_classes': self.model.out_classes,
-                                            'channels' : self.model.channels,
-                                            'pool_every' : self.model.pool_every,
-                                            'hidden_dims': [each.out_classes for each in self.model.hidden_dims],
-                                            'state_dict': self.model.state_dict()
-                                        }
 
-                    torch.save(checkpoint_dict, checkpoints)
                     '''
             
             
@@ -313,7 +304,7 @@ class VAETrainer(Trainer):
         #z, mu, log_sigma2 =self.model.encode(x)
         loss, data_loss, kldiv_loss = self.loss_fn(x,xr,mu,log_sigma2)
         
-        print(loss)
+        
         
         loss.backward()
         self.optimizer.step()
@@ -335,7 +326,7 @@ class VAETrainer(Trainer):
             
             loss, data_loss, kldiv_loss = self.loss_fn(x,xr,mu,log_sigma2)
                        
-            self.optimizer.step()
+           
         
             # ========================
 
