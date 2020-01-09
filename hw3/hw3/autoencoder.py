@@ -187,7 +187,7 @@ class EncoderCNN(nn.Module):
         checkpoint_dict = {'in_channels': self.in_channels,
                            'out_channels': self.out_channels,
                            'state_dict': self.state_dict()}
-        torch.save(checkpoint_dict,name)
+        torch.save(checkpoint_dict,filpath)
         
 
         
@@ -249,15 +249,13 @@ class VAE(nn.Module):
         # ====== YOUR CODE: ======
         self.enc_out_dim = self._check_features(in_size)
 
-
         self.in_fc_dim = self.enc_out_dim[1]
         # Adding fc layers to represent the NN for mu and sigma
 
         self.mu_fc = nn.Sequential(nn.Linear(self.in_fc_dim,self.z_dim))
         
         self.log_sigma2_fc = nn.Sequential(nn.Linear(self.in_fc_dim,self.z_dim))
-        
-        
+
         self.rec_fc = nn.Sequential(nn.Linear(self.z_dim,self.in_fc_dim))
         
         
@@ -286,7 +284,9 @@ class VAE(nn.Module):
         mu = self.mu_fc(encoded_features.view(encoded_features.shape[0],-1))
         log_sigma2 = self.log_sigma2_fc(encoded_features.view(encoded_features.shape[0],-1))
         u = torch.randn(encoded_features.shape[0],self.z_dim, requires_grad=True).to(self.device )
+        
         #u = torch.normal(torch.zeros_like(mu), torch.ones_like(mu))
+        
         z = torch.exp(0.5*log_sigma2)*u + mu
         # ========================
 
@@ -299,13 +299,8 @@ class VAE(nn.Module):
         #  2. Apply features decoder.
         # ====== YOUR CODE: ======
         
-        z_dec = self.rec_fc(z)
-        
-        
-        # z.shape[0],self.features_shape
-        
-        z_dec = z_dec.view(z.shape[0],self.features_shape[0],self.features_shape[1],self.features_shape[2])
-        
+        z_dec = self.rec_fc(z)        
+        z_dec = z_dec.view(z.shape[0],self.features_shape[0],self.features_shape[1],self.features_shape[2])        
         x_rec = self.features_decoder(z_dec)
         # ========================
 
