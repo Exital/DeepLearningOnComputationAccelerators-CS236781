@@ -14,7 +14,7 @@ class DiscriminatorConv(nn.Module):
     """
 
     def __init__(self, in_channels: int, channels: list, kernel_sizes: list,
-                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.1,bias_flag = False):
+                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.2,bias_flag = False):
         """
         :param in_channels: Number of input channels to the first convolution.
         :param channels: List of number of output channels for each
@@ -89,7 +89,7 @@ class GeneratorConv(nn.Module):
     """
 
     def __init__(self, in_channels: int, channels: list, kernel_sizes: list,
-                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.1,bias_flag = False):
+                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.2,bias_flag = False):
         """
         :param in_channels: Number of input channels to the first convolution.
         :param channels: List of number of output channels for each
@@ -215,7 +215,7 @@ class Discriminator(nn.Module):
         # ====== YOUR CODE: ======
         
         batch_size = x.shape[0]
-        featurs = self.model_conv(x)
+        featurs = F.tanh(self.model_conv(x))
         featurs = featurs.view(batch_size,-1)
         
         print(self.fc_in_dim)
@@ -269,11 +269,16 @@ class Generator(nn.Module):
         :return: A batch of samples, shape (N,C,H,W).
         """
         device = next(self.parameters()).device
-        # TODO: Sample from the model.
+        # DONE: Sample from the model.
         #  Generate n latent space samples and return their reconstructions.
         #  Don't use a loop.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        z = torch.randn(n,self.z_dim,device = device)
+        #,requires_grad = with_grad
+        samples = self.forward(z)
+        
+        if with_grad==False:
+            samples = samples.detach()
         # ========================
         return samples
 
@@ -287,7 +292,7 @@ class Generator(nn.Module):
         #  Don't forget to make sure the output instances have the same
         #  dynamic range as the original (real) images.
         # ====== YOUR CODE: ======
-        z = z.view(1,-1,1,1)
+        z = z.view(z.shape[0],-1,1,1)
         x  = self.net_G(z)
         # ========================
         return x
@@ -376,7 +381,18 @@ def train_batch(dsc_model: Discriminator, gen_model: Generator,
     #  2. Calculate discriminator loss
     #  3. Update discriminator parameters
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    #Train Discriminator with real and fake images 
+    
+    dsc_optimizer.zero_grad()
+    
+    data = x_data
+    
+    y_data = dsc_model(data)
+    y_gen = dsc_model(gen_model.sample(y_data.shape[0],with_grad = False))
+    
+    dsc_loss = dsc_loss_fn(y_data,y_gen)
+    dsc_loss.backward()
+    dsc_optimizer.step()
     # ========================
 
     # TODO: Generator update
@@ -384,7 +400,15 @@ def train_batch(dsc_model: Discriminator, gen_model: Generator,
     #  2. Calculate generator loss
     #  3. Update generator parameters
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    
+    #Train generator 
+    gen_optimizer.zero_grad()
+    data_gen = dsc_model(gen_model.sample(y_data.shape[0],with_grad = True))
+    
+    gen_loss = gen_loss_fn(data_gen)
+    
+    gen_loss.backward()
+    gen_optimizer.step()
     # ========================
 
     return dsc_loss.item(), gen_loss.item()
@@ -407,7 +431,7 @@ def save_checkpoint(gen_model, dsc_losses, gen_losses, checkpoint_file):
     #  You should decide what logic to use for deciding when to save.
     #  If you save, set saved to True.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    pass
     # ========================
 
     return saved

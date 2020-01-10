@@ -322,12 +322,8 @@ class VAETrainer(Trainer):
             # ====== YOUR CODE: ======
             self.model.eval()
             self.optimizer.zero_grad()
-            xr, mu, log_sigma2 = self.model(x)
-            
-            loss, data_loss, kldiv_loss = self.loss_fn(x,xr,mu,log_sigma2)
-                       
-           
-        
+            xr, mu, log_sigma2 = self.model(x) 
+            loss, data_loss, kldiv_loss = self.loss_fn(x,xr,mu,log_sigma2)                       
             # ========================
 
         return BatchResult(loss.item(), 1/data_loss.item())
