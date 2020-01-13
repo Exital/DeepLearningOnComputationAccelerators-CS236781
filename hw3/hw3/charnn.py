@@ -205,7 +205,7 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
         x = torch.unsqueeze(chars_to_onehot(start_sequence, char_to_idx), 0)
         
         for i in range(n_chars - len(start_sequence)):
-            x.dtype=torch.float
+            x = x.type(torch.float)
             
             x = x.to(model.device)
             
