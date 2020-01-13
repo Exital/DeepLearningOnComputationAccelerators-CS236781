@@ -206,11 +206,17 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
         
         for i in range(n_chars - len(start_sequence)):
             x.dtype=torch.float
+            
             x = x.to(model.device)
+            
             y, h_t = model(x, hidden_state=h_t)
+            
             prob = hot_softmax(y[0, -1, :], temperature=T)
+            
             x_samp = torch.multinomial(prob, 1)
+            
             out_text += idx_to_char[x_samp.item()]
+            
             x = torch.unsqueeze(chars_to_onehot(out_text[-1], char_to_idx), 0)
     # ========================
 
