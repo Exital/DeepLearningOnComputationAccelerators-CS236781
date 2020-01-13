@@ -114,10 +114,14 @@ class Trainer(abc.ABC):
 
             if best_acc is None or best_acc < curr_test_accuracy:
                 best_acc = curr_test_accuracy
-                '''
+                
                 if checkpoints is not None:
+                    state_dict = dict(best_acc=best_acc,
+                                       model_state=self.model.state_dict())
+                    checkpoint_file = f'{checkpoints}.pt'
+                    torch.save(state_dict, checkpoint_file)
 
-                    '''
+                   
             
             
             # ========================
@@ -266,6 +270,7 @@ class RNNTrainer(Trainer):
         #  - Update params
         #  - Calculate number of correct char predictions
         # ====== YOUR CODE: ======
+        
         self.optimizer.zero_grad()
         
         #  - Forward pass
@@ -284,7 +289,8 @@ class RNNTrainer(Trainer):
         
         pred = torch.argmax(pred_scores, dim=1)
         num_correct = torch.sum(y == pred)        
-        
+       
+     
         # ========================
 
         # Note: scaling num_correct by seq_len because each sample has seq_len

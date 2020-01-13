@@ -201,21 +201,16 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     # ====== YOUR CODE: ======
     
     with torch.no_grad():
-        # h_0 is None
         h_t = None
-        next_sec = start_sequence
-        N = n_chars - len(start_sequence)
-        for _ in range(N):
-            # one hot the chars 
-            x = chars_to_onehot(next_sec,char_to_idx)
-            x = x.type(torch.float)
-            x = x.unsqueeze(dim=0)
-            # pass through model
-            y,h_t = model(x,h_t)
+        x = torch.unsqueeze(chars_to_onehot(start_sequence, char_to_idx), 0)
+        
+        for i in range(n_chars - len(start_sequence)):
+            x.dtype=torch.float
+            x = x.to(model.device)
+            y, h_t = model(x, hidden_state=h_t)
             prob = hot_softmax(y[0, -1, :], temperature=T)
-            next_char_idx = torch.multinomial(prob, 1)
-            
-            out_text += idx_to_char[next_char_idx.item()]
+            x_samp = torch.multinomial(prob, 1)
+            out_text += idx_to_char[x_samp.item()]
             x = torch.unsqueeze(chars_to_onehot(out_text[-1], char_to_idx), 0)
     # ========================
 
@@ -301,7 +296,7 @@ class MultilayerGRU(nn.Module):
         
         # TODO -   Dropout layer 
         #self.drop_layer = nn.Dropout(dropout)
-        
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         for layer in range(self.n_layers):
             input_dim = self.h_dim
             if layer == 0:
@@ -321,6 +316,19 @@ class MultilayerGRU(nn.Module):
             
             # Dropout
             dropout_layer = nn.Dropout(dropout)
+            
+           
+            W_xz = W_xz.to(self.device)
+            W_hz = W_hz.to(self.device)
+            
+            W_xr = W_xr.to(self.device)
+            W_hr = W_hr.to(self.device)
+
+            W_xg = W_xg.to(self.device)
+            W_hg = W_hg.to(self.device)
+            dropout_layer = dropout_layer.to(self.device)
+            
+            
             
             # Appending the model parameters  
             self.layer_params.append((W_xz , W_hz , W_xr , W_hr , W_xg , W_hg ,dropout_layer))
@@ -342,9 +350,8 @@ class MultilayerGRU(nn.Module):
             
         # Output layer
         self.W_y = nn.Linear(self.h_dim,self.out_dim)
-        # TODO delete
-        #self.layer_params.append((W_y))
-        #self.add_module(name= 'W_y', module=W_y)    
+        self.W_y = self.W_y.to(self.device)
+ 
         
         # ========================
 
@@ -364,7 +371,8 @@ class MultilayerGRU(nn.Module):
         (B, L, H) as above.
         """
         batch_size, seq_len, _ = input.shape
-
+        input = input.to(self.device)
+        
         layer_states = []
         for i in range(self.n_layers):
             if hidden_state is None:
@@ -383,13 +391,19 @@ class MultilayerGRU(nn.Module):
         #  single tensor in a differentiable manner.
         # ====== YOUR CODE: ======
         self.to(device=layer_input.device)
+        
         out_list = []
         for seq in range(seq_len):
             X_t = layer_input[:,seq,:]
+            
+            X_t =  X_t.to(self.device)
+            
+            #print('X {}'.format(X_t.device))
             for idx in range(self.n_layers):
                 model_params = self.layer_params[idx]
                 hidden_i = layer_states[idx]
                 
+                #print('h {}'.format(hidden_i.device))
                 # Extracting parameters
                 W_xz = model_params[0]
                 W_hz = model_params[1]

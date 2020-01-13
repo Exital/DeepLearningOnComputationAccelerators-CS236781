@@ -104,11 +104,11 @@ def part2_vae_hyperparams():
     )
     # TODO: Tweak the hyperparameters to generate a former president.
     # ====== YOUR CODE: ======
-    hypers['batch_size'] = 64
+    hypers['batch_size'] = 32
     hypers['h_dim'] = 256
     hypers['z_dim'] = 256
-    hypers['x_sigma2'] = 0.41
-    hypers['learn_rate'] = 0.0001
+    hypers['x_sigma2'] = 0.45
+    hypers['learn_rate'] = 0.00025
     hypers['betas'] = (0.9, 0.99)
     # ========================
     return hypers
@@ -166,13 +166,13 @@ def part3_gan_hyperparams():
     # TODO: Tweak the hyperparameters to train your GAN.
     # ====== YOUR CODE: ======
     hypers = dict(
-        batch_size=32, z_dim=256,
-        data_label=1, label_noise=0.25,
+        batch_size=32, z_dim=128,
+        data_label=1, label_noise=0.28,
         discriminator_optimizer=dict(
             type='Adam',
             weight_decay=0.02,
             betas=(0.5,0.999),
-            lr=0.00021,
+            lr=0.0002,
         ),
         generator_optimizer=dict(
             type='Adam',
