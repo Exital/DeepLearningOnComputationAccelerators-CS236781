@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
-from torch.distributions import uniform
+
 
 class Discriminator(nn.Module):
     def __init__(self, in_size):
