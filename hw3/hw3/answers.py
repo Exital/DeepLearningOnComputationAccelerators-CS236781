@@ -16,7 +16,11 @@ def part1_rnn_hyperparams():
     )
     # TODO: Set the hyperparameters to train the model.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    hypers = dict(
+        batch_size=128, seq_len=120,
+        h_dim=128, n_layers=12, dropout=0.1,
+        learn_rate=0.002, lr_sched_factor=0.002, lr_sched_patience=0.1,
+    )
     # ========================
     return hypers
 
@@ -26,7 +30,8 @@ def part1_generation_params():
     temperature = .0001
     # TODO: Tweak the parameters to generate a literary masterpiece.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    start_seq = "The"
+    temperature = .0001
     # ========================
     return start_seq, temperature
 
@@ -161,19 +166,21 @@ def part3_gan_hyperparams():
     # TODO: Tweak the hyperparameters to train your GAN.
     # ====== YOUR CODE: ======
     hypers = dict(
-        batch_size=64, z_dim=32,
-        data_label=1, label_noise=0.3,
+        batch_size=32, z_dim=256,
+        data_label=1, label_noise=0.25,
         discriminator_optimizer=dict(
-            type='Adam',  # Any name in nn.optim like SGD, Adam
-            lr=0.008,
-            # weight_decay=0.1
+            type='Adam',
+            weight_decay=0.02,
+            betas=(0.5,0.999),
+            lr=0.00021,
         ),
         generator_optimizer=dict(
-            type='Adam',  # Any name in nn.optim like SGD, Adam
-            lr=0.008,
+            type='Adam',
+            weight_decay=0.02,
+            betas=(0.5,0.999),
+            lr=0.00021,
         ),
     )
-    
     # ========================
     return hypers
 

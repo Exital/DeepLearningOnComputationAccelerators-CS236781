@@ -241,14 +241,14 @@ class RNNTrainer(Trainer):
     def train_epoch(self, dl_train: DataLoader, **kw):
         # TODO: Implement modifications to the base method, if needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.hidden_state = None
         # ========================
         return super().train_epoch(dl_train, **kw)
 
     def test_epoch(self, dl_test: DataLoader, **kw):
         # TODO: Implement modifications to the base method, if needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.hidden_state = None
         # ========================
         return super().test_epoch(dl_test, **kw)
 
@@ -266,7 +266,25 @@ class RNNTrainer(Trainer):
         #  - Update params
         #  - Calculate number of correct char predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.optimizer.zero_grad()
+        
+        #  - Forward pass
+        pred_scores,self.hidden_state = self.model(x,hidden_state = self.hidden_state)
+        pred_scores = torch.transpose(pred_scores,1,2)
+        
+        #  - Calculate total loss over sequence
+        loss = self.loss_fn(pred_scores,y)
+        
+        #  - Backward pass: truncated back-propagation through time
+        loss.backward()
+        self.optimizer.step()
+        
+        self.hidden_state = self.hidden_state.detach()
+        self.hidden_state.requires_grad = False        
+        
+        pred = torch.argmax(pred_scores, dim=1)
+        num_correct = torch.sum(y == pred)        
+        
         # ========================
 
         # Note: scaling num_correct by seq_len because each sample has seq_len
@@ -286,7 +304,16 @@ class RNNTrainer(Trainer):
             #  - Loss calculation
             #  - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            pred_scores,self.hidden_state = self.model(x,hidden_state = self.hidden_state)
+            pred_scores = torch.transpose(pred_scores,1,2)
+            
+            #  - Calculate total loss over sequence
+            loss = self.loss_fn(pred_scores,y)
+            
+            #  - Backward pass: truncated back-propagation through time
+            
+            pred = torch.argmax(pred_scores, dim=1)
+            num_correct = torch.sum(y == pred)  
             # ========================
 
         return BatchResult(loss.item(), num_correct.item() / seq_len)

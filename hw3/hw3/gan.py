@@ -7,155 +7,7 @@ import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
-
-class DiscriminatorConv(nn.Module):
-    """
-    a convolution block for the encoder
-    """
-
-    def __init__(self, in_channels: int, channels: list, kernel_sizes: list,
-                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.2,bias_flag = False):
-        """
-        :param in_channels: Number of input channels to the first convolution.
-        :param channels: List of number of output channels for each
-        convolution in the block. The length determines the number of
-        convolutions.
-        :param kernel_sizes: List of kernel sizes (spatial). Length should
-        be the same as channels. Values should be odd numbers.
-        :param batchnorm: True/False whether to apply BatchNorm between
-        convolutions.
-        :param dropout: Amount (p) of Dropout to apply between convolutions.
-        Zero means don't apply dropout.
-        """
-        super().__init__()
-        assert channels and kernel_sizes
-        assert len(channels) == len(kernel_sizes) 
-        assert len(channels) == len(stride_list) 
-        assert len(channels) == len(padding_list) 
-
-        #assert all(map(lambda x: x % 2 == 1, kernel_sizes))
-        self.out_channels = channels[-1]
-        self.main_path= None
-
-        # DONE: Implement a generic residual block.
-        #  Use the given arguments to create two nn.Sequentials:
-        #  the main_path, which should contain the convolution, dropout,
-        #  batchnorm, relu sequences, and the shortcut_path which should
-        #  represent the skip-connection.
-        #  Use convolutions which preserve the spatial extent of the input.
-        #  For simplicity of implementation, we'll assume kernel sizes are odd.
-        # ====== YOUR CODE: ======
-        main_layers = []
-        
-        # constructing the input layer 
-        # we assume kernel sizes are odd so to preserve spacial dimentions we 
-        # padd with the kernel size divided by 2
-
-        main_layers.append(nn.Conv2d(in_channels,channels[0],kernel_sizes[0],padding = padding_list[0]
-                                     ,stride = stride_list[0],bias = bias_flag))
-        main_layers.append(nn.Dropout2d(dropout))
-        if batchnorm ==True:    
-            main_layers.append(nn.BatchNorm2d(channels[0]))
-        main_layers.append(nn.ELU(alpha = 0.5)) 
-        
-        
-        for idx in range(len(channels)-1):
-            
-            main_layers.append(nn.Conv2d(channels[idx],channels[idx +1],kernel_sizes[idx+1],padding =padding_list[idx+1],
-                                         stride = stride_list[idx+1],bias = bias_flag))
-
-            if idx < len(channels)-2:    
-                #main_layers.append(nn.ReLU())
-                main_layers.append(nn.ELU(alpha = 0.5))
-                main_layers.append(nn.Dropout2d(dropout))
-                if batchnorm ==True:    
-                    main_layers.append(nn.BatchNorm2d(channels[idx + 1]))
-        
-        main_layers.append(nn.Sigmoid())              
-        self.main_path = nn.Sequential(*main_layers)
-        self.layers_list = main_layers
-        # ========================
-
-    def forward(self, x):
-        out = self.main_path(x)
-        out = torch.relu(out)
-        return out
-
-
-
-class GeneratorConv(nn.Module):
-    """
-    a convolution block for the decoder
-    """
-
-    def __init__(self, in_channels: int, channels: list, kernel_sizes: list,
-                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.2,bias_flag = False):
-        """
-        :param in_channels: Number of input channels to the first convolution.
-        :param channels: List of number of output channels for each
-        convolution in the block. The length determines the number of
-        convolutions.
-        :param kernel_sizes: List of kernel sizes (spatial). Length should
-        be the same as channels. Values should be odd numbers.
-        :param batchnorm: True/False whether to apply BatchNorm between
-        convolutions.
-        :param dropout: Amount (p) of Dropout to apply between convolutions.
-        Zero means don't apply dropout.
-        """
-        super().__init__()
-        assert channels and kernel_sizes
-        assert len(channels) == len(kernel_sizes) 
-        assert len(channels) == len(stride_list) 
-        assert len(channels) == len(padding_list) 
-
-        #assert all(map(lambda x: x % 2 == 1, kernel_sizes))
-        self.out_channels = channels[-1]
-        self.main_path= None
-
-        # DONE: Implement a generic residual block.
-        #  Use the given arguments to create two nn.Sequentials:
-        #  the main_path, which should contain the convolution, dropout,
-        #  batchnorm, relu sequences, and the shortcut_path which should
-        #  represent the skip-connection.
-        #  Use convolutions which preserve the spatial extent of the input.
-        #  For simplicity of implementation, we'll assume kernel sizes are odd.
-        # ====== YOUR CODE: ======
-        main_layers = []
-        
-        # constructing the input layer 
-        # we assume kernel sizes are odd so to preserve spacial dimentions we 
-        # padd with the kernel size divided by 2
-
-        main_layers.append(nn.ConvTranspose2d(in_channels,channels[0],kernel_sizes[0],padding = padding_list[0]
-                                     ,stride = stride_list[0],bias = bias_flag))
-        main_layers.append(nn.Dropout2d(dropout))
-        if batchnorm ==True:    
-            main_layers.append(nn.BatchNorm2d(channels[0]))
-        main_layers.append(nn.ELU(alpha = 0.5)) 
-        
-        
-        for idx in range(len(channels)-1):
-            
-            main_layers.append(nn.ConvTranspose2d(channels[idx],channels[idx +1],kernel_sizes[idx+1],padding =padding_list[idx+1],
-                                         stride = stride_list[idx+1],bias = bias_flag))
-
-            if idx < len(channels)-2:    
-                #main_layers.append(nn.ReLU())
-                main_layers.append(nn.ELU(alpha = 0.5))
-                main_layers.append(nn.Dropout2d(dropout))
-                if batchnorm ==True:    
-                    main_layers.append(nn.BatchNorm2d(channels[idx + 1]))
-                        
-        self.main_path = nn.Sequential(*main_layers)
-        self.layers_list = main_layers
-        # ========================
-
-    def forward(self, x):
-        out = self.main_path(x)
-        out = torch.relu(out)
-        return out
-
-
+from torch.distributions import uniform
 
 class Discriminator(nn.Module):
     def __init__(self, in_size):
@@ -172,35 +24,78 @@ class Discriminator(nn.Module):
         # ====== YOUR CODE: ======
         self.in_size = in_size
         self.in_channels = self.in_size[0]
-        self.out_channels = 256
+        self.out_channels = 1024
         self.channels_list = [128,256,512,self.out_channels]
         self.kernels_list = [4]*len(self.channels_list)
         self.stride_list = [2]*(len(self.channels_list)-1)+[1]
         self.padding_list = [1]*(len(self.channels_list)-1) + [0]
         
-        self.model_conv = DiscriminatorConv(self.in_channels, self.channels_list,self.kernels_list,
+        self.model_conv = self._make_feature_ext_disc(self.in_channels, self.channels_list,self.kernels_list,
                              self.stride_list,self.padding_list)
+        
         l_size = [1]+[self.in_size[0]] +[self.in_size[1]] +[self.in_size[2]]
         test = torch.randn(l_size)
         featurs = self.model_conv(test)
         featurs = featurs.view(1,-1)
-        
+               
         self.fc_in_dim = featurs.shape[1]
-        self.fc_hidden = [64,1]
+        self.fc_hidden = [1]
+        
         #Creating a fc NN for the classification part
+
         layers = []
         M = len(self.fc_hidden)
         mlp_in_dim = self.fc_in_dim
         for idx in range(M):
             layers.append(nn.Linear(mlp_in_dim,self.fc_hidden[idx]))
-            layers.append(nn.ReLU())
+            #layers.append(nn.LeakyReLU())
             mlp_in_dim = self.fc_hidden[idx]
             layers.append(nn.Dropout(p = 0.1))
             
         layers.append(nn.Linear(mlp_in_dim,1))
         
         self.model_fc = nn.Sequential(*layers)
+      
+    # function to create a feature extractor
+    def _make_feature_ext_disc(self, in_channels: int, channels: list, kernel_sizes: list,
+                 stride_list:list,padding_list:list ,batchnorm=True, dropout=0.2,bias_flag = False):
         
+        assert channels and kernel_sizes
+        assert len(channels) == len(kernel_sizes) 
+        assert len(channels) == len(stride_list) 
+        assert len(channels) == len(padding_list) 
+
+        #assert all(map(lambda x: x % 2 == 1, kernel_sizes))
+        self.out_channels = channels[-1]
+        self.main_path= None
+
+        main_layers = []
+        
+        # constructing the input layer 
+        # we assume kernel sizes are odd so to preserve spacial dimentions we 
+        # padd with the kernel size divided by 2
+
+        main_layers.append(nn.Conv2d(in_channels,channels[0],kernel_sizes[0],padding = padding_list[0]
+                                     ,stride = stride_list[0],bias = bias_flag))
+        main_layers.append(nn.Dropout2d(dropout))
+        if batchnorm ==True:    
+            main_layers.append(nn.BatchNorm2d(channels[0]))
+         
+        main_layers.append(nn.ReLU())
+        
+        for idx in range(len(channels)-1):
+            
+            main_layers.append(nn.Conv2d(channels[idx],channels[idx +1],kernel_sizes[idx+1],padding =padding_list[idx+1],
+                                         stride = stride_list[idx+1],bias = bias_flag))
+
+            if idx < len(channels)-2:    
+                main_layers.append(nn.ReLU())
+                
+                main_layers.append(nn.Dropout2d(dropout))
+                if batchnorm ==True:    
+                    main_layers.append(nn.BatchNorm2d(channels[idx + 1]))
+                                  
+        return nn.Sequential(*main_layers)        
         # ========================
 
     def forward(self, x):
@@ -215,15 +110,15 @@ class Discriminator(nn.Module):
         # ====== YOUR CODE: ======
         
         batch_size = x.shape[0]
-        featurs = F.tanh(self.model_conv(x))
+        featurs = torch.tanh(self.model_conv(x))
         featurs = featurs.view(batch_size,-1)
-        
-        print(self.fc_in_dim)
-        print(featurs.shape)
-        
+               
         y = self.model_fc(featurs)
         # ========================
         return y
+
+
+
 
 
 class Generator(nn.Module):
@@ -245,7 +140,7 @@ class Generator(nn.Module):
         self.featuremap_size = featuremap_size
         self.out_channels = out_channels
         
-        self.channels_list = [512,256,128,64,self.out_channels]
+        self.channels_list = [1024,512,128,64,self.out_channels]
         self.kernels_list = [self.featuremap_size]*len(self.channels_list)
         #self.stride_list = [1]+[2]*(len(self.channels_list)-1)
         self.stride_list = [2]*len(self.channels_list)
@@ -254,7 +149,7 @@ class Generator(nn.Module):
         
         
         
-        self.net_G = GeneratorConv(self.z_dim,self.channels_list,self.kernels_list,
+        self.net_G = self._make_generator(self.z_dim,self.channels_list,self.kernels_list,
                              self.stride_list,self.padding_list)
         
         # ========================
@@ -273,15 +168,59 @@ class Generator(nn.Module):
         #  Generate n latent space samples and return their reconstructions.
         #  Don't use a loop.
         # ====== YOUR CODE: ======
-        z = torch.randn(n,self.z_dim,device = device)
+      
+        z = torch.randn(n,self.z_dim,device = device,requires_grad = with_grad)
         #,requires_grad = with_grad
         samples = self.forward(z)
         
         if with_grad==False:
             samples = samples.detach()
+      
+        
         # ========================
         return samples
+    
+    def _make_generator(self, in_channels: int, channels: list, kernel_sizes: list,
+                 stride_list:list,padding_list:list ,batchnorm=False, dropout=0.1,bias_flag = False):
+        assert channels and kernel_sizes
+        assert len(channels) == len(kernel_sizes) 
+        assert len(channels) == len(stride_list) 
+        assert len(channels) == len(padding_list) 
 
+        self.out_channels = channels[-1]
+        self.main_path= None
+
+        # ====== YOUR CODE: ======
+        main_layers = []
+        
+        # constructing the input layer 
+        # we assume kernel sizes are odd so to preserve spacial dimentions we 
+        # padd with the kernel size divided by 2
+
+        main_layers.append(nn.ConvTranspose2d(in_channels,channels[0],kernel_sizes[0],padding = padding_list[0]
+                                     ,stride = stride_list[0],bias = bias_flag))
+        main_layers.append(nn.Dropout2d(dropout))
+        if batchnorm ==True:    
+            main_layers.append(nn.BatchNorm2d(channels[0]))
+        main_layers.append(nn.LeakyReLU()) 
+        
+        
+        for idx in range(len(channels)-1):
+            
+            main_layers.append(nn.ConvTranspose2d(channels[idx],channels[idx +1],kernel_sizes[idx+1],padding =padding_list[idx+1],
+                                         stride = stride_list[idx+1],bias = bias_flag))
+
+            if idx < len(channels)-2:    
+                #main_layers.append(nn.Tanh())
+                main_layers.append(nn.ReLU())
+                main_layers.append(nn.Dropout2d(dropout))
+                if batchnorm == True:
+                    main_layers.append(nn.BatchNorm2d(channels[idx + 1]))
+                        
+        return nn.Sequential(*main_layers)
+        
+    
+    
     def forward(self, z):
         """
         :param z: A batch of latent space samples of shape (N, latent_dim).
@@ -335,7 +274,6 @@ def discriminator_loss_fn(y_data, y_generated, data_label=0, label_noise=0.0):
     
     loss_data = criterion(y_data,target_data)
     loss_generated = criterion(y_generated,target_generated)
-    
 
     # ========================
     return loss_data + loss_generated
@@ -357,11 +295,13 @@ def generator_loss_fn(y_generated, data_label=0):
     #  Think about what you need to compare the input to, in order to
     #  formulate the loss in terms of Binary Cross Entropy.
     # ====== YOUR CODE: ======
+    
     target = torch.ones_like(y_generated)*data_label
     target.to(y_generated.device)
     
     criterion = nn.BCEWithLogitsLoss()
     loss = criterion(y_generated,target)
+
     # ========================
     return loss
 
