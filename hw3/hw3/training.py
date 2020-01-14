@@ -91,8 +91,8 @@ class Trainer(abc.ABC):
             curr_train_accuracy = train_epoch_res[1]
             train_acc.append(curr_train_accuracy)
             train_result = sum(train_epoch_res[0]) / len(train_epoch_res[0])
-            # TODO remove print
-            #print('Epoch '+ str(epoch) + ' train loss: ' + str(curr_train_loss))
+
+
             train_loss.append(train_result)
             
             test_epoch_res = self.test_epoch(dl_test,**kw)
@@ -136,7 +136,7 @@ class Trainer(abc.ABC):
                       f'at epoch {epoch+1}')
 
             if post_epoch_fn:
-                post_epoch_fn(epoch, train_result, test_result, verbose)
+                post_epoch_fn(epoch, train_epoch_res, test_epoch_res, verbose)
 
         return FitResult(actual_num_epochs,
                          train_loss, train_acc, test_loss, test_acc)
