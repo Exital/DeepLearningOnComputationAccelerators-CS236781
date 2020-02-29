@@ -1,7 +1,7 @@
 import gym
 import torch
 import torch.nn as nn
-import torch.nn.functional
+import torch.nn.functional as F
 
 from .rl_pg import PolicyAgent, TrainBatch, VanillaPolicyGradientLoss
 
@@ -19,7 +19,21 @@ class AACPolicyNet(nn.Module):
         #  Implement a dual-head neural net to approximate both the
         #  policy and value. You can have a common base part, or not.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.fc1_actor = nn.Linear(in_features,256)
+        self.relu_1_actor = nn.ReLU()
+        self.fc2_actor = nn.Linear(256,128)
+        self.relu_2_actor = nn.ReLU()
+        self.fc3_actor = nn.Linear(128,out_actions)
+        #self.relu_3_actor = nn.ReLU()
+        #self.fc4_actor = nn.Linear(64,out_actions)
+        
+        self.fc1_critic = nn.Linear(in_features,128)
+        self.relu_1_critic = nn.ReLU()
+        self.fc2_critic = nn.Linear(128,64)
+        self.relu_2_critic = nn.ReLU()
+        self.fc3_critic = nn.Linear(64,1)
+        #self.relu_3_critic = nn.ReLU()
+        #self.fc4_critic = nn.Linear(out_actions,1)
         # ========================
 
     def forward(self, x):
@@ -34,7 +48,21 @@ class AACPolicyNet(nn.Module):
         #  calculate both the action scores (policy) and the value of the
         #  given state.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # separate base
+        # actor network
+        action_scores = self.fc1_actor(x)
+        action_scores = self.relu_1_actor(action_scores)
+        action_scores = self.fc2_actor(action_scores)
+        action_scores = self.relu_2_actor(action_scores)
+        action_scores = self.fc3_actor(action_scores)
+
+        # critic network
+        state_values = self.fc1_critic(x)
+        state_values = self.relu_1_critic(state_values)
+        state_values = self.fc2_critic(state_values)
+        state_values = self.relu_2_critic(state_values)
+        state_values = self.fc3_critic(state_values)
+
         # ========================
 
         return action_scores, state_values
@@ -49,7 +77,7 @@ class AACPolicyNet(nn.Module):
         """
         # TODO: Implement according to docstring.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        net = AACPolicyNet(env.observation_space.shape[0],env.action_space.n)
         # ========================
         return net.to(device)
 
@@ -59,7 +87,9 @@ class AACPolicyAgent(PolicyAgent):
     def current_action_distribution(self) -> torch.Tensor:
         # TODO: Generate the distribution as described above.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        soft_max = nn.Softmax(dim=0)
+        scores,_ = self.p_net(self.curr_state)
+        actions_proba = soft_max(scores)
         # ========================
         return actions_proba
 
@@ -82,7 +112,13 @@ class AACPolicyGradientLoss(VanillaPolicyGradientLoss):
         #  advantage vector per state.
         #  Use the helper functions in this class and its base.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        loss_v = self._value_loss(batch,state_values)
+        advantage = self._policy_weight(batch,state_values)
+        log_policy = F.log_softmax(action_scores,dim=1)
+        N = log_policy.shape[0]
+
+        loss_p = -(1./N)*(advantage*(log_policy.gather(1,batch.actions))).sum()
+        
         # ========================
 
         loss_v *= self.delta
@@ -96,14 +132,19 @@ class AACPolicyGradientLoss(VanillaPolicyGradientLoss):
         #  Notice that we don't want to backprop errors from the policy
         #  loss into the state-value network.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        state_values_ = state_values.detach()
+        #print(state_values_.requires_grad)
+        #print(state_values.requires_grad)
+        advantage = batch.q_vals - state_values_
         # ========================
         return advantage
 
     def _value_loss(self, batch: TrainBatch, state_values: torch.Tensor):
         # TODO: Calculate the state-value loss.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        
+        loss_v = F.mse_loss(batch.q_vals,state_values)
         # ========================
         return loss_v
 

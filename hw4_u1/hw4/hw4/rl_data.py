@@ -39,7 +39,15 @@ class Episode(object):
         #  Try to implement it in O(n) runtime, where n is the number of
         #  states. Hint: change the order.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        for cntr,exp in enumerate(reversed(self.experiences),0):
+            if cntr == 0:
+                
+                qvals.append(exp.reward)
+            else:
+                qvals.append(exp.reward+gamma*qvals[-1])
+        
+        qvals.reverse()
         # ========================
         return qvals
 
@@ -76,14 +84,42 @@ class TrainBatch(object):
         :param episodes: List of episodes to create the TrainBatch from.
         :param gamma: Discount factor for q-vals calculation
         """
+        
         train_batch = None
-
+        qvals_list = []
+        states_list = []
+        
+        reward_list = []
+        action_list = []
+        
         # TODO:
         #   - Extract states, actions and total rewards from episodes.
         #   - Calculate the q-values for states in each experience.
         #   - Construct a TrainBatch instance.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        for episode in episodes :
+            
+            # concat lists of qvals 
+            qvals_list += episode.calc_qvals(gamma)
+            # extract states and actions
+            for exp in episode.experiences:
+                states_list.append(exp.state)
+                action_list.append(exp.action)
+            
+            reward_list.append(episode.total_reward)
+        qvals_tensor = torch.FloatTensor(qvals_list)
+        qvals_tensor = torch.unsqueeze(qvals_tensor,1)
+
+        states_tensor = torch.stack(states_list,0)
+
+        
+        rewards_tensor = torch.FloatTensor(reward_list)
+        rewards_tensor = torch.unsqueeze(rewards_tensor,1)
+        action_tensor = torch.LongTensor(action_list)
+        action_tensor = torch.unsqueeze(action_tensor,1)
+        
+        train_batch = TrainBatch(states_tensor,action_tensor,qvals_tensor,rewards_tensor)
+
         # ========================
         return train_batch
 
@@ -141,7 +177,21 @@ class TrainBatchDataset(torch.utils.data.IterableDataset):
             #    by the agent.
             #  - Store Episodes in the curr_batch list.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            
+            # Play for an entire episode  
+            episode_done = False 
+            while not episode_done:
+                exp = agent.step()
+                _,_,reward,episode_done = exp
+                episode_reward += reward
+                episode_experiences.append(exp)
+            
+            curr_batch.append(Episode(episode_reward,episode_experiences)) 
+             
+            # Initalise episode reward and episode_experiences for next episode iteration 
+            episode_reward = 0.0
+            episode_experiences = []
+
             # ========================
             if len(curr_batch) == self.episode_batch_size:
                 yield tuple(curr_batch)

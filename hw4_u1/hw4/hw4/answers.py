@@ -12,31 +12,31 @@ math (delimited with $$).
 
 def part1_pg_hyperparams():
     hp = dict(batch_size=32,
-              gamma=0.99,
-              beta=0.5,
-              learn_rate=1e-3,
-              eps=1e-8,
+              gamma=0.98,
+              beta=0.25,
+              learn_rate=7*1e-4,
+              eps=1e-6,
               )
     # TODO: Tweak the hyperparameters if needed.
     #  You can also add new ones if you need them for your model's __init__.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    #raise NotImplementedError()
     # ========================
     return hp
 
 
 def part1_aac_hyperparams():
-    hp = dict(batch_size=32,
-              gamma=0.99,
-              beta=1.,
-              delta=1.,
-              learn_rate=1e-3,
+    hp = dict(batch_size=1,
+              gamma=0.97,
+              beta=0.5,
+              delta=1.0,
+              learn_rate=1e-6,
               eps=1e-8,
               )
     # TODO: Tweak the hyperparameters. You can also add new ones if you need
     #   them for your model implementation.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    #raise NotImplementedError()
     # ========================
     return hp
 
